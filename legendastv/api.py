@@ -242,6 +242,7 @@ class LegendasTV(HttpEngine):
                 dataline = data[2].split(' ')
                 sub = model.Subtitle(
                     # Independent attributes
+                    raw         = lxml.html.tostring(el, encoding='unicode'),
                     hash        = dataurl[2],
                     title       = dataurl[3],
                     downloads   = u.toint(dataline[0]),
