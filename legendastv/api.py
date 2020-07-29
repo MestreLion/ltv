@@ -255,7 +255,7 @@ class LegendasTV(HttpEngine):
                 )
                 # Derived attributes
                 sub.url = self.download_url + sub.hash
-                sub.language = self.languages.get(re.search(self._re_lang, sub.flag).group(1))
+                sub.language = self.langflags.get(re.search(self._re_lang, sub.flag).group(1))
                 if sub.pack and sub.release.startswith("(p)"):
                     sub.release = sub.release[3:]
 
