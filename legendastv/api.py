@@ -196,7 +196,6 @@ class LegendasTV(HttpEngine):
         lang:     str  = "",
         query:    str  = "",
         subtype:  str  = "",
-        allpages: bool = True,
     ) -> t.List[model.Subtitle]:
         """Return subtitles from a given title query or ID"""
         allchar = '-'
@@ -218,8 +217,7 @@ class LegendasTV(HttpEngine):
         url = f"/legenda/busca/{query}/{lang}/{subtype}/{page}/{title_id}/"
 
         subs: t.List[model.Subtitle] = []
-        lastpage = False
-        while not lastpage:
+        while url:
             page += 1
             try:
                 tree = self.parse(url)
@@ -227,14 +225,6 @@ class LegendasTV(HttpEngine):
                 log.error(e)
                 return subs
 
-            # <div class="">
-            #     <span class="number number_2">35</span>
-            #     <div class="f_left">
-            #         <p><a href="/download/c0c4d6418a3474b2fb4e9dae3f797bd4/Gattaca/gattaca_dvdrip_divx61_ac3_sailfish">gattaca_dvdrip_divx61_ac3_(sailfish)</a></p>
-            #         <p class="data">1210 downloads, nota 10, enviado por <a href="/usuario/SuperEly">SuperEly</a> em 02/11/2006 - 16:13 </p>
-            #     </div>
-            #     <img src="/img/idioma/icon_brazil.png" alt="Portugu&#234;s-BR" title="Portugu&#234;s-BR">
-            # </div>
             for el in tree.xpath(".//article/div"):
                 if el.attrib['class'].startswith('banner'): continue
                 data = el.xpath(".//text()")
@@ -265,13 +255,10 @@ class LegendasTV(HttpEngine):
                 subs.append(sub)
 
             # Page control
-            if not allpages:
-                lastpage = True
+            nextpage = tree.xpath("//a[@class='load_more']")
+            if nextpage:
+                url = nextpage[0].attrib['href']
             else:
-                nextpage = tree.xpath("//a[@class='load_more']")
-                if nextpage:
-                    url = nextpage[0].attrib['href']
-                else:
-                    lastpage = True
+                url = ""
 
         return subs
