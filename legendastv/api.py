@@ -230,6 +230,7 @@ class LegendasTV(HttpEngine):
                 data = el.xpath(".//text()")
                 dataurl = el.xpath(".//a")[0].attrib['href'].split('/')
                 dataline = data[2].split(' ')
+                flag = el.xpath("./img")[0].attrib['src']
                 sub = model.Subtitle(
                     # Independent attributes
                     raw         = lxml.html.tostring(el, encoding='unicode'),
@@ -242,11 +243,10 @@ class LegendasTV(HttpEngine):
                     release     = data[1],
                     pack        = el.attrib['class'] == 'pack',
                     featured    = el.attrib['class'] == 'destaque',
-                    flag        = el.xpath("./img")[0].attrib['src']
+                    language    = self.langflags.get(re.search(self._re_lang, flag).group(1))
                 )
                 # Derived attributes
                 sub.url = self.download_url + sub.hash
-                sub.language = self.langflags.get(re.search(self._re_lang, sub.flag).group(1))
                 if sub.pack and sub.release.startswith("(p)"):
                     sub.release = sub.release[3:]
 
