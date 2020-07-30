@@ -136,6 +136,38 @@ class LegendasTV(HttpEngine):
     )
     langflags = {v['flag']: k for k, v in languages.items()}
 
+    _title_mapping = dict(
+        id       = 'id_filme',
+        category = 'tipo',  # used to determine subclass
+        title    = 'dsc_nome',
+        native   = 'dsc_nome_br',
+        thumb    = 'dsc_imagen',
+        year     = 'dsc_data_lancamento',
+        season   = 'temporada',  # only for Season subclass
+        imdb_id  = 'id_imdb',
+        synopsis = 'dsc_sinopse',
+        user_id  = 'id_usuario',
+        # Unused fields and example values:
+        # "int_genero":         "1021",
+        # "dsc_sinopse":        "...",
+        # "dsc_url_imdb":       "http://www.imdb.com/title/tt0082186/",
+        # Not derived from 'id_imdb', not standartized. Real examples:
+        # [36413] "http://www.imdb.com/title/tt2338096/" - Most common
+        # [41202] "http://www.imdb.com/title/tt2314952"  - No trailing slash
+        # [81698] "http://uk.imdb.com/title/tt0081698"   - Alt subdomain
+        # [22597] "www.imdb.com/title/tt1216475/"        - Missing scheme
+        # "soundex":            "KLXF0TTNS",
+        # "flg_liberado":       "1",
+        # "dsc_data_liberacao": None,
+        # "dsc_data":           None,
+        # "dsc_metaphone_us":   "KLXF0TTNS",
+        # "dsc_metaphone_br":   "FRTTTS",
+        # "episodios":          None,
+        # "flg_seriado":        None,
+        # "last_used":          "1373185369",
+        # "deleted":            False,
+    )
+
     _re_subtitle = re.compile(
         r'<div class="(?P<subtype>[^" ]*)">.+?/download/(?P<hash>[a-f0-9]+)/'
         r'(?P<title>[^/]*?)/[^>]*>(?P<release>[^<]*)<.*?(?P<downloads>\d*) '
@@ -173,18 +205,19 @@ class LegendasTV(HttpEngine):
         self.auth = 'href="/users/logout"' in content
         return self.auth
 
-    def search_title(self, text:str) -> t.List[model.Title]:
-        url = "/legenda/sugestao/" + self.quote_partial(text)
+    def search_titles(self, query:str) -> t.List[model.Title]:
+        """Main API method to search titles from a query text"""
+        url = "/legenda/sugestao/" + self.quote_partial(query)
         try:
-            data: t.List[dict] = self.json(url)
+            json: t.List[dict] = self.json(url)
         except HttpEngineError as e:
             log.error(e)
-            data = []
+            return []
 
         titles: t.List[model.Title] = []
-        for title in data:
+        for data in json:
             try:
-                title = model.Title.from_data(title)
+                title = self._title_from_json(data)
             except u.LegendasTVError as e:
                 log.error(e)
                 continue
@@ -192,13 +225,41 @@ class LegendasTV(HttpEngine):
             titles.append(title)
         return titles
 
+    def _title_from_json(self, data:dict) -> model.TTitle:
+        # Map raw JSON data to class attributes
+        try:
+            kwargs = {k: data['_source'].get(v) for k, v in self._title_mapping.items()}
+        except KeyError as e:
+            raise u.LegendasTVError("Missing expected key %r: %s", e.message, data)
+
+        # Type casting and data formatting
+        for k in ('id', 'year', 'season', 'imdb_id', 'user_id'):
+            kwargs[k] = u.toint(kwargs[k])
+        try:
+            category = model.Category(kwargs.pop('category'))
+        except ValueError as e:
+            # 'X' is not a valid Category
+            raise u.LegendasTVError("%s: %s", e.args[0], data)
+
+        # Integrity checks
+        if category == model.Category.MOVIE and kwargs['season']:
+            log.warning("Movie with season (%r): %s", kwargs['season'], data)
+        if category == model.Category.SEASON and not kwargs['season']:
+            log.warning("Season with invalid season (%r): %s", kwargs['season'], data)
+        if not (kwargs['title'] and kwargs['native']):
+            log.warning("Empty original or native title: %s", data)
+
+        # Inject source data, for future use
+        kwargs['_raw'] = data
+        return model.Title.from_category(category, kwargs)
+
     def search_subtitles(self,
         title_id: int  = 0,
         lang:     str  = "",
         query:    str  = "",
         subtype:  str  = "",
     ) -> t.List[model.Subtitle]:
-        """Return subtitles from a given title query or ID"""
+        """Return subtitles from a given title ID or query"""
         allchar = '-'
         subtypes = [__.value for __ in model.SubType]
 
