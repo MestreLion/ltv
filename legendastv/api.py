@@ -13,7 +13,6 @@ import urllib.parse
 
 from   datetime import datetime
 
-import lxml.html
 import requests
 
 from . import util as u
@@ -100,10 +99,6 @@ class HttpEngine:
         """Load JSON content from an URL"""
         return self._get(url, *a, **kw).json()
 
-    def parse(self, url:str, *a, **kw) -> lxml.etree.ElementTree:
-        """Parse HTML content from an URL and return an ElementTree object"""
-        return lxml.html.fromstring(self.get(url, *a, **kw))
-
     def absurl(self, url_path:str) -> str:
         """Join the Base URL with an URL path to get an absolute, full URL"""
         return urllib.parse.urljoin(self.base_url, url_path)
@@ -141,7 +136,13 @@ class LegendasTV(HttpEngine):
     )
     langflags = {v['flag']: k for k, v in languages.items()}
 
-    _re_lang = re.compile(r"idioma/\w+_(\w+)\.")
+    _re_subtitle = re.compile(
+        r'<div class="(?P<subtype>[^" ]*)">.+?/download/(?P<hash>[a-f0-9]+)/'
+        r'(?P<title>[^/]*?)/[^>]*>(?P<release>[^<]*)<.*?(?P<downloads>\d*) '
+        r'downloads, nota (?P<rating>[^,]*),[^>]*>(?P<username>[^<]*)</a> em '
+        r'(?P<date>[^<]*)<.*?/idioma/\w+_(?P<language>\w+)[^>]+></div>'
+    )
+    _re_nextpage = '<a href="([^"]*)" class="load_more">'
 
     def __init__(self, username:str="", password:str="", **kwargs):
         super().__init__(kwargs.pop('base_url', "") or self.url, **kwargs)
@@ -211,7 +212,7 @@ class LegendasTV(HttpEngine):
         title_id = title_id or allchar
         lang     = self.languages.get(lang, {}).get('id', allchar)
         query    = self.quote_partial(query or allchar)
-        subtype  = subtype or allchar
+        subtype  = str(subtype) or allchar
         page     = 0
 
         url = f"/legenda/busca/{query}/{lang}/{subtype}/{page}/{title_id}/"
@@ -220,44 +221,35 @@ class LegendasTV(HttpEngine):
         while url:
             page += 1
             try:
-                tree = self.parse(url)
+                html = self.get(url)
             except (HttpEngineError, ConnectionError, TimeoutError) as e:
                 log.error(e)
                 return subs
 
-            for el in tree.xpath(".//article/div"):
-                if el.attrib['class'].startswith('banner'): continue
-                data = el.xpath(".//text()")
-                dataurl = el.xpath(".//a")[0].attrib['href'].split('/')
-                dataline = data[2].split(' ')
-                flag = el.xpath("./img")[0].attrib['src']
+            for data in re.finditer(self._re_subtitle, html):
+                s = data.groupdict()
                 sub = model.Subtitle(
                     # Independent attributes
-                    raw         = lxml.html.tostring(el, encoding='unicode'),
-                    hash        = dataurl[2],
-                    title       = dataurl[3],
-                    downloads   = u.toint(dataline[0]),
-                    rating      = u.toint(dataline[3][:-1], None),
-                    date        = datetime.strptime(data[4].strip()[3:], '%d/%m/%Y - %H:%M'),
-                    username    = data[3],
-                    release     = data[1],
-                    pack        = el.attrib['class'] == 'pack',
-                    featured    = el.attrib['class'] == 'destaque',
-                    language    = self.langflags.get(re.search(self._re_lang, flag).group(1))
+                    raw         = data.group(0),
+                    hash        = s['hash'],
+                    url         = self.download_url + s['hash'],
+                    title       = s['title'],
+                    downloads   = u.toint(s['downloads']),
+                    rating      = u.toint(s['rating'], None),
+                    date        = datetime.strptime(s['date'].strip(), '%d/%m/%Y - %H:%M'),
+                    username    = s['username'],
+                    release     = s['release'],
+                    subtype     = model.SubType(s['subtype'][:1]),
+                    language    = self.langflags.get(s['language'], None)
                 )
-                # Derived attributes
-                sub.url = self.download_url + sub.hash
-                if sub.pack and sub.release.startswith("(p)"):
-                    sub.release = sub.release[3:]
-
                 #if u.options['cache']: self.cache(sub.flag)
                 log.debug(repr(sub))
                 subs.append(sub)
 
             # Page control
-            nextpage = tree.xpath("//a[@class='load_more']")
+            nextpage = re.search(self._re_nextpage, html)
             if nextpage:
-                url = nextpage[0].attrib['href']
+                url = nextpage.group(1)
             else:
                 url = ""
 

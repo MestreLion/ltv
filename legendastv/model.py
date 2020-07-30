@@ -25,6 +25,7 @@ class Category(enum.Enum):
 
 
 class SubType(enum.Enum):
+    REGULAR  = ''
     PACK     = 'p'
     FEATURED = 'd'  # 'Destaque'
 
@@ -161,23 +162,28 @@ class Cartoon(Season):
 
 class Subtitle:
     """Subtitle archive"""
+    _typechar_map = {
+        SubType.PACK:     'P',
+        SubType.FEATURED: '*',
+    }
+
     def __init__(self, **kwargs):
         self._raw = kwargs.pop('raw', None)
         for k, v in kwargs.items():
             setattr(self, k, v)
 
     @property
-    def flags(self):
-        s = ''
-        if   self.pack:     s += 'P'
-        elif self.featured: s += '*'
-        return s
+    def pack(self):
+        return self.subtype == SubType.PACK
+
+    @property
+    def featured(self):
+        return self.subtype == SubType.FEATURED
 
     def __repr__(self):
-        fields = ['hash', 'release', 'username', 'date', 'downloads']
-        if   self.pack:     fields.append('pack')
-        elif self.featured: fields.append('featured')
+        fields = ['hash', 'release', 'username', 'date', 'downloads', 'subtype']
         return u.fullrepr(self, fields)
 
     def __str__(self):
-        return f"<{self.url}> {self.flags:1} {self.release}"
+        typechar = self._typechar_map.get(self.subtype, ' ')
+        return f"<{self.url}> {typechar} {self.release}"
