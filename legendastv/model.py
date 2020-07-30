@@ -72,7 +72,7 @@ class Title:
     _subclass_mapping: t.ClassVar[t.Dict[Category, 'Title']] = {}
 
     def __init__(self, **kwargs):
-        self._raw = kwargs.pop('raw', None)
+        self._raw = kwargs.pop('_raw', None)
         for k, v in kwargs.items():
             setattr(self, k, v)
 
@@ -124,7 +124,7 @@ class Title:
             log.warning("Empty original or native title: %s", data)
 
         # Inject source data, for future use
-        kwargs['raw'] = data
+        kwargs['_raw'] = data
 
         return cls._subclass_mapping[category](**kwargs)
 
@@ -168,7 +168,7 @@ class Subtitle:
     }
 
     def __init__(self, **kwargs):
-        self._raw = kwargs.pop('raw', None)
+        self._raw = kwargs.pop('_raw', None)
         for k, v in kwargs.items():
             setattr(self, k, v)
 

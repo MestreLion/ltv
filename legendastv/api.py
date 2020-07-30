@@ -230,7 +230,7 @@ class LegendasTV(HttpEngine):
                 s = data.groupdict()
                 sub = model.Subtitle(
                     # Independent attributes
-                    raw         = data.group(0),
+                    _raw        = data.group(0),
                     hash        = s['hash'],
                     url         = self.download_url + s['hash'],
                     title       = s['title'],
