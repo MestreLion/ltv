@@ -249,8 +249,10 @@ class LegendasTV(HttpEngine):
         if not (kwargs['title'] and kwargs['native']):
             log.warning("Empty original or native title: %s", data)
 
-        # Inject source data, for future use
+        # Inject source provider and data, for future use
+        kwargs['_ltv'] = self
         kwargs['_raw'] = data
+
         return model.Title.from_category(category, kwargs)
 
     def search_subtitles(self,
@@ -291,6 +293,7 @@ class LegendasTV(HttpEngine):
                 s = data.groupdict()
                 sub = model.Subtitle(
                     # Independent attributes
+                    _ltv        = self,
                     _raw        = data.group(0),
                     hash        = s['hash'],
                     url         = self.download_url + s['hash'],

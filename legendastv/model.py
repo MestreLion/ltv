@@ -40,6 +40,7 @@ class Title:
     _subclass_mapping: t.ClassVar[t.Dict[Category, 'Title']] = {}
 
     def __init__(self, **kwargs):
+        self._ltv = kwargs.pop('_ltv', None)
         self._raw = kwargs.pop('_raw', None)
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -107,6 +108,7 @@ class Subtitle:
     }
 
     def __init__(self, **kwargs):
+        self._ltv = kwargs.pop('_ltv', None)
         self._raw = kwargs.pop('_raw', None)
         for k, v in kwargs.items():
             setattr(self, k, v)
