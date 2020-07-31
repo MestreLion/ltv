@@ -7,6 +7,7 @@
 """
 
 import logging
+import os
 import re
 import typing as t
 import urllib.parse
@@ -50,7 +51,12 @@ class HttpEngine:
             netloc, _x, path = path.partition('/')
         self.base_url = urllib.parse.urlunsplit((scheme, netloc, path, q, f))
 
-    def _get(self, url:str, postdata:dict=None, timeout:int=0) -> requests.Response:
+    def _get(self,
+        url:      str,
+        postdata: dict = None,
+        timeout:  int  = 0,
+        stream:   bool = False,
+    ) -> requests.Response:
         """Send an HTTP request, either GET or POST, keeping session and cookies.
 
         <postdata> is a dict with name/value pairs. If falsy, URL is retrieved
@@ -80,7 +86,8 @@ class HttpEngine:
             log.debug("%s %s",    method, url)
 
         try:
-            response = self._session.request(method, url, headers=headers, **kwargs)
+            response = self._session.request(method, url, headers=headers,
+                                             stream=stream, **kwargs)
             response.raise_for_status()
         except requests.HTTPError as e:
             raise HttpEngineError(e, errno=e.response.status_code)
@@ -90,6 +97,40 @@ class HttpEngine:
             raise ConnectionError(e)  # stdlib
 
         return response
+
+    def download(self, url:str, savedir:str, filename="", overwrite:bool=True) -> str:
+        # Handle dir
+        savedir = os.path.expanduser(savedir)
+        os.makedirs(savedir, exist_ok=True)
+
+        try:
+            with self._get(url, stream=True) as response:
+                response.raise_for_status()
+
+                # If save name is not set, use the downloaded file name
+                if not filename:
+                    filename = response.url.rstrip("/")
+                # Get the full path
+                filename = os.path.join(savedir, os.path.basename(filename))
+
+                if not overwrite and os.path.isfile(filename):
+                    log.debug("using cached file: %s", filename)
+                    return filename
+
+                log.debug("downloading to: %s", filename)
+                with open(filename, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=None):
+                        if chunk:
+                            f.write(chunk)
+
+        except requests.HTTPError as e:
+            raise HttpEngineError(e, errno=e.response.status_code)
+        except requests.Timeout as e:
+            raise TimeoutError(e)  # stdlib
+        except requests.ConnectionError as e:
+            raise ConnectionError(e)  # stdlib
+
+        return filename
 
     def get(self, url:str, *a, **kw) -> str:
         """Return content from an URL"""
@@ -318,3 +359,27 @@ class LegendasTV(HttpEngine):
                 url = ""
 
         return subs
+
+    def download_subtitle(self,
+        filehash:  str,
+        savedir:   str,
+        basename:  str  = "",
+        overwrite: bool = True
+    ) -> str:
+        """Download a subtitle given its ID (hash), and return its saved path.
+
+        Save the archive as dir/basename, using the basename provided or,
+        if empty, the one returned from the website.
+        """
+        if not self.auth:
+            log.warning("Subtitle download requires authentication.")
+
+        url = '/downloadarquivo/' + filehash
+
+        try:
+            path = self.download(url, savedir, basename, overwrite=overwrite)
+        except (HttpEngineError, ConnectionRefusedError, TimeoutError) as e:
+            log.error(e)
+            return
+
+        return path
