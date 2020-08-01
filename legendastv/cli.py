@@ -16,6 +16,7 @@ import argh
 
 from . import __about__ as a
 from . import api
+from . import filetools
 from . import util as u
 
 
@@ -68,6 +69,10 @@ def parse_args(argv:list=None) -> t.Tuple[argparse.Namespace, argh.ArghParser]:
         help="Verbose mode, output extra info."
     )
 
+    argh.add_commands(parser, functions=(
+        filetools.video_hash,
+        filetools.guess_info,
+    ))
     argh.add_commands(parser, functions=(
         search_titles,
         search_subtitles,
