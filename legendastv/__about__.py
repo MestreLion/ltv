@@ -66,6 +66,7 @@ classifiers      = [
 keywords         = "subtitles api library legendastv scraper"
 entry_points     = {'console_scripts': [f'{__title__} = {__title__}.cli:main']}
 install_requires = [
+    'argh',
     'requests',
 ]
 readme           = "README.md"

@@ -10,17 +10,41 @@ import argparse
 import logging
 import os
 import sys
+import typing as t
+
+import argh
 
 from . import __about__ as a
+from . import api
 from . import util as u
 
 
 log = logging.getLogger(__name__)
 
 
-def parse_args(argv:list=None) -> argparse.Namespace:
+# CLI command wrappers ###################################################
+
+def search_titles(
+        query:str,
+        ) -> None:
+    ltv = api.LegendasTV()
+    for title in ltv.search_titles(query):
+        yield(f"{title.id}\t{title.category}\t{title}")
+
+
+def search_subtitles(
+        title_id:int,
+        ) -> None:
+    ltv = api.LegendasTV()
+    for sub in ltv.search_subtitles(title_id):
+        print(f"{sub.hash}\t{sub}")
+
+
+# ########################################################################
+
+def parse_args(argv:list=None) -> t.Tuple[argparse.Namespace, argh.ArghParser]:
     """Argument parsing and CLI interface setup"""
-    parser = argparse.ArgumentParser(
+    parser = argh.ArghParser(
         prog            = __package__,
         description     = f"{a.__project__}\n{a.__description__}",
         epilog          = a.epilog,
@@ -44,19 +68,24 @@ def parse_args(argv:list=None) -> argparse.Namespace:
         help="Verbose mode, output extra info."
     )
 
+    argh.add_commands(parser, functions=(
+        search_titles,
+        search_subtitles,
+    ))
+
     args = parser.parse_args(argv)
     args.debug = args.loglevel == logging.DEBUG
     log.setLevel(args.loglevel)
 
-    return args
+    return args, parser
 
 
 def cli(argv:list=None):
     """CLI main function"""
     logging.basicConfig(format='%(asctime).19s [%(levelname)-.5s] %(message)s')
-    args = parse_args(argv)
+    args, parser = parse_args(argv)
     log.debug(args)
-    print("Legendas.TV!")
+    argh.dispatch(parser, argv)
 
 
 def main(argv:list=None):
