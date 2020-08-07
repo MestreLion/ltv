@@ -14,19 +14,19 @@ from . import util as u
 log = logging.getLogger(__name__)
 
 
-def video_hash(filename:str) -> str:
+def video_hash(filepath:str) -> str:
     """Return the OpenSubtitles video file hash.
 
     https://trac.opensubtitles.org/projects/opensubtitles/wiki/HashSourceCodes
     """
     block = 65536
     fmt = f"<{block//8}Q"  # 8 bytes * 8KiB (unsigned long long)
-    vhash = os.path.getsize(filename) # initial value for hash is file size
+    vhash = os.path.getsize(filepath) # initial value for hash is file size
 
     def partialhash(f):
         return sum(struct.unpack(fmt, f.read(block)))
 
-    with open(filename, "rb") as f:
+    with open(filepath, "rb") as f:
         try:
             vhash += partialhash(f)
             f.seek(-block, os.SEEK_END)
@@ -34,7 +34,7 @@ def video_hash(filename:str) -> str:
             vhash &= 0xFFFFFFFFFFFFFFFF  # cap at 64bit
         except (IOError, struct.error):
             raise u.LegendasTVError("File must be at least %d bytes to hash: %s",
-                                    block, filename)
+                                    block, filepath)
     return f"{vhash:016x}"
 
 
