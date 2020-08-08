@@ -1,3 +1,9 @@
+### Project ###
+unrar/*.tar.gz
+unrar/unrar-*/
+unrar/unrar
+
+
 ### Python ###
 
 # Byte-compiled / optimized / DLL files
