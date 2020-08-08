@@ -1,0 +1,3 @@
+# https://trac.opensubtitles.org/projects/opensubtitles/wiki/HashSourceCodes
+8e245d9679d31e12	breakdance.avi	http://www.opensubtitles.org/addons/avi/breakdance.avi
+61f7751fc2a72bfb	dummy.bin	http://www.opensubtitles.org/addons/avi/dummy.rar
