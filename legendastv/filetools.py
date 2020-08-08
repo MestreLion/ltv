@@ -155,7 +155,10 @@ def extract_archive(archive:   str,
         path = os.path.splitext(archive)[0]
     log.debug("path = %r", path)  # @@
 
-    if not(cached and os.path.exists(path)):
+    if cached and os.path.exists(path):
+        log.debug("Using already extracted files at: %s", path)
+    else:
+        log.debug("Extracting to: %s", path)
         os.makedirs(path, exist_ok=True)
         af.extractall(path, members=names)
 
@@ -190,7 +193,7 @@ def extract_archive(archive:   str,
         except PermissionError as e:
             log.error(e)
 
-    log.info("%d extracted files in '%s', filtered by %s\n\t%s",
+    log.info("%d extracted files in '%s', filtered by %s\n%s",
              len(outputfiles), archive, extlist, pprint.pformat(outputfiles, indent=4))
 
     if not _root:
