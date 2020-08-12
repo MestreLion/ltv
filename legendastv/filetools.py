@@ -18,16 +18,24 @@ log = logging.getLogger(__name__)
 
 
 # RAR archive support
+rarfile = None
 try:
-    import rarfile
+    import rarfile  # uses "windows-1252" as default fallback charset
     log.debug("Handling RAR archives with rarfile")
+    _rarmodule = 'rarfile'
 except ImportError:
+    pass  # avoid nested try/except blocks
+if not rarfile:
     try:
         from unrar import rarfile
         log.debug("Handling RAR archives with unrar")
+        _rarmodule = 'unrar'
+    except LookupError:
+        log.warning("UnRAR library not found, will not be able to extract RAR archives.")
+        _rarmodule = 'unrar'
     except ImportError:
-        log.warning("No module to extract RAR archives was found")
-        rarfile = None
+        log.warning("No RAR module found, will not be able to extract RAR archives.")
+        _rarmodule = ""
 
 
 # Mimetype guessing
@@ -91,8 +99,28 @@ VIDEO_EXTENSIONS_EXTRA = [
 class ArchiveFile:
     """Wrapper class to handle both RAR and ZIP files transparently"""
     def __new__(cls, file):
-        if   rarfile.is_rarfile(file): return rarfile.RarFile(file, mode='r')
-        elif zipfile.is_zipfile(file): return zipfile.ZipFile(file, mode='r')
+        if zipfile.is_zipfile(file):
+            return zipfile.ZipFile(file, mode='r')
+        if not rarfile:
+            if _rarmodule == 'unrar':
+                raise u.LegendasTVError(
+                    "Could not find an UnRAR library to extract %r."
+                    " Please install `libunrar.so`, `libunrar5` or equivalent.", file)
+            raise u.LegendasTVError(
+                "Missing RAR support to extract archive %r,"
+                " please install python module `rarfile` or `unrar`.", file)
+        if rarfile.is_rarfile(file):
+            if _rarmodule == 'rarfile':
+                # Early test for extraction tool availability
+                # Would trigger on either RarFile() or extractall() depending on RAR type
+                try:
+                    rarfile.tool_setup()  # @UndefinedVariable
+                except rarfile.RarCannotExec:  # @UndefinedVariable
+                    raise u.LegendasTVError(
+                        "Could not find a RAR extraction utility for %r."
+                        " Please install either `unrar`, `unar` or `bsdtar`"
+                        " to extract RAR archives.", file)
+            return rarfile.RarFile(file, mode='r')
         raise u.LegendasTVError("Unsupported archive format, must be RAR or ZIP: %s", file)
 
 
@@ -100,7 +128,7 @@ def extract_archive(archive:   str,
                     path:      str  = None,
                     extlist:   list = None,
                     keep:      bool = True,
-                    cached:    bool = True,
+                    overwrite: bool = False,
                     safe:      bool = True,
                     recursion: int  = 1,
                     _root:     bool = True) -> list:
@@ -110,80 +138,93 @@ def extract_archive(archive:   str,
     <path>      Extraction directory, by default the archive path without extension.
                   A blank <path> ("") extracts to the current directory.
     <extlist>   List or a comma-separated string of file extensions (excluding the '.')
-                  to filter the extracted list output. By default list all files.
-                  Note this just affects the list output, not the extraction itself,
-                  which is performed on all files and only affected by <safe>.
+                  to filter the extracted files. By default extract all files except
+                  the ones excluded by <safe>, if any.
     <keep>      Do not delete <archive> after succesful extraction. Default True.
-    <cached>    If <path> exists, do not perform actual extraction and consider all files
-                  as already extracted. Does not check if files actually exist in <path>,
-                  and perform usual <extlist> filtering on output. Default True.
+    <overwrite> Force extraction of files that are already present in their final
+                  destination path. Does not check if files actually have same content.
+                  Default False.
     <safe>      Do not extract files with internal paths containing references to parent
                   directories ('..') or starting with '/' (absolute paths), which could
                   lead to extracted files outside <path>. Default True.
     <recursion> Recursively extract archives found inside <archive> up to a maximum
                   of <recursion> archives. Note <recursion> does not mean recursion depth,
-                  but the number of inner archives extracted in any depth.
+                  but the number of inner archives extracted in any depth. Extract them
+                  "in-place", with their <path> set to None. The archives themselves and
+                  their contents are listed on final output subject to <extlist> rules.
                   Negative <recursion> do not limit extraction, a dangerous value which
                   might lead to extraction bombs. Zero disables recursive extraction.
                   Default 1.
 
     Return a list of files after extraction, with their paths, filtered by <extlist>.
     """
-
     try:
         af = ArchiveFile(archive)
     except u.LegendasTVError as e:
         log.error(e)
+        if not _root:
+            return [], recursion
         return []
-
-    names = af.namelist()
-    log.debug("%d files in archive: %s\n%s",
-              len(names), archive, pprint.pformat(names, indent=4))
-
-    if isinstance(extlist, str):
-        extlist = extlist.split(',')
-    log.debug("extlist = %r", extlist)  # @@
-
-    if safe:
-        for name in names[:]:
-            if name.startswith('/') or name.startswith('../') or '/../' in name:
-                log.warning("Not extracting file with unsafe path in archive %r: %s",
-                            archive, name)
-                names.remove(name)
 
     if path is None:
         path = os.path.splitext(archive)[0]
-    log.debug("path = %r", path)  # @@
+    log.debug("Extracting archive to %r: %s", path, archive)
 
-    if cached and os.path.exists(path):
-        log.debug("Using already extracted files at: %s", path)
-    else:
-        log.debug("Extracting to: %s", path)
-        os.makedirs(path, exist_ok=True)
-        af.extractall(path, members=names)
+    names = af.namelist()
+    log.debug("%d files in archive:\n%s", len(names), pprint.pformat(names, indent=4))
+
+    if isinstance(extlist, str):
+        extlist = extlist.split(',')
+
+    # List of files to be extracted
+    members = []
+    archives = recursion
+    for name in names[:]:
+        if safe and (name.startswith('/') or name.startswith('../') or '/../' in name):
+            log.warning("Not extracting file with unsafe path in archive %r: %s", archive, name)
+            names.remove(name)
+            continue
+        if not overwrite and os.path.exists(os.path.join(path, name)):  # racy but fine
+            continue
+        ext = extension(name)
+        if not extlist or ext in extlist:
+            members.append(name)
+            continue
+        if archives and ext in ('zip', 'rar'):
+            members.append(name)
+            archives -= 1
+            continue
+
+    if members:
+        remove = makedirs(path)
+        try:
+            af.extractall(path, members=members)
+            remove = False
+        finally:
+            if remove:
+                try:
+                    os.removedirs(path)
+                except OSError:
+                    pass
 
     outputfiles = []
     for name in names:
-        ext = extension(name)
         filepath = os.path.join(path, name)
-        log.debug("filepath = %r", filepath)  # @@
+        ext = extension(filepath)
 
         if not extlist or ext in extlist:
             outputfiles.append(filepath)
 
-        elif recursion and ext in ['zip', 'rar']:
+        if recursion and ext in ('zip', 'rar'):
             out, recursion = extract_archive(filepath,
                                              path=None,  # derive from filepath
                                              extlist=extlist,
                                              keep=keep,
-                                             cached=cached,
+                                             overwrite=overwrite,
                                              safe=safe,
                                              recursion=recursion-1,
                                              _root=False)
             outputfiles.extend(out)
-
-    if hasattr(af, 'close'):
-        af.close()
 
     if not keep:
         try:
@@ -193,13 +234,25 @@ def extract_archive(archive:   str,
         except PermissionError as e:
             log.error(e)
 
-    log.info("%d extracted files in '%s', filtered by %s\n%s",
-             len(outputfiles), archive, extlist, pprint.pformat(outputfiles, indent=4))
-
     if not _root:
         return outputfiles, recursion
 
     return outputfiles
+
+
+def makedirs(path:str):
+    """Create leaf and all intermediate directories in <path>.
+
+    Return True if <path> is actually created now, False if it already exists.
+    Raise LegendasTVError on OSError exceptions (tipically permission / access errors)
+    """
+    try:
+        os.makedirs(path)
+        return True
+    except FileExistsError:
+        return False
+    except OSError as e:
+        raise u.LegendasTVError("Error creating path '%r': %s", path, e)
 
 
 def extension(filepath:str) -> str:
