@@ -14,6 +14,9 @@ import typing as t
 
 import argh
 
+# Undo __init__'s NullHandler
+logging.getLogger(__package__).handlers.clear()
+
 from . import __about__ as a
 from . import api
 from . import filetools
@@ -39,6 +42,24 @@ def search_subtitles(
     ltv = api.LegendasTV()
     for sub in ltv.search_subtitles(title_id):
         print(f"{sub.hash}\t{sub}")
+
+def extract(
+        archive:   str,
+        path:      str  = None,
+        extlist:   list = None,
+        keep:      bool = True,
+        overwrite: bool = False,
+        safe:      bool = True,
+        recursion: int  = 1,
+        ) -> None:
+    """Extract files from an archive"""
+    try:
+        paths = filetools.extract_archive(archive, path, extlist, keep, overwrite, safe, recursion)
+    except FileNotFoundError:
+        raise u.LegendasTVError("Cannot extract archive, no such file: %s", archive)
+
+    for path in paths:
+        log.info(path)
 
 
 # ########################################################################
@@ -72,6 +93,7 @@ def parse_args(argv:list=None) -> t.Tuple[argparse.Namespace, argh.ArghParser]:
     argh.add_commands(parser, functions=(
         filetools.video_hash,
         filetools.guess_info,
+        extract,
     ))
     argh.add_commands(parser, functions=(
         search_titles,
@@ -80,7 +102,7 @@ def parse_args(argv:list=None) -> t.Tuple[argparse.Namespace, argh.ArghParser]:
 
     args = parser.parse_args(argv)
     args.debug = args.loglevel == logging.DEBUG
-    log.setLevel(args.loglevel)
+    logging.getLogger().setLevel(args.loglevel)  # could be done by cli()
 
     return args, parser
 
