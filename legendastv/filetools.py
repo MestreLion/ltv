@@ -136,7 +136,8 @@ def extract_archive(archive:   str,
     archives = recursion
     for name in names[:]:
         if safe and (name.startswith('/') or name.startswith('../') or '/../' in name):
-            log.warning("Not extracting file with unsafe path in archive %r: %s", archive, name)
+            log.warning("Not extracting file with unsafe path in archive %r: %s",
+                        archive, name)
             names.remove(name)
             continue
         if not overwrite and os.path.exists(os.path.join(path, name)):  # racy but fine

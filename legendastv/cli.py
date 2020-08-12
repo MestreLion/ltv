@@ -54,7 +54,15 @@ def extract(
         ) -> None:
     """Extract files from an archive"""
     try:
-        paths = filetools.extract_archive(archive, path, extlist, keep, overwrite, safe, recursion)
+        paths = filetools.extract_archive(
+            archive,
+            path,
+            extlist,
+            keep,
+            overwrite,
+            safe,
+            recursion
+        )
     except FileNotFoundError:
         raise u.LegendasTVError("Cannot extract archive, no such file: %s", archive)
 
