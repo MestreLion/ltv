@@ -6,7 +6,10 @@
     ZIP and RAR handling
 """
 
+import ctypes.util
 import logging
+import os
+import sys
 import zipfile
 
 from . import util as u
@@ -24,7 +27,18 @@ def import_rarfile(file:str=""):
         if not file: return nofile
         return msg % (file,)
 
-    # unrar
+    ### unrar
+    # set to library inside package, if applicable
+    if   os.name == "nt":          lib = 'unrar.dll',      'unrar.dll'  # Windows
+    elif sys.platform == "darwin": lib = 'libunrar.dylib', 'unrar'      # macOS
+    else:                          lib = 'libunrar.so',    'unrar'      # Linux (assumed)
+    lib_path = os.path.join(os.path.dirname(__file__), lib[0])
+    if (    not os.environ.get('UNRAR_LIB_PATH', None)  # Not already manually set
+        and not ctypes.util.find_library(lib[1])        # Not installed in system
+        and os.path.exists(lib_path)                    # Found in package
+    ):
+        os.environ['UNRAR_LIB_PATH'] = lib_path
+    # import the module
     try:
         import unrar.rarfile
         log.debug("Handling RAR archives with module unrar")
@@ -35,7 +49,7 @@ def import_rarfile(file:str=""):
     except ImportError:
         pass
 
-    # rarfile
+    ### rarfile
     try:
         import rarfile
         try:
@@ -55,8 +69,8 @@ def import_rarfile(file:str=""):
     if unrar:
         raise u.LegendasTVError(
             "Could not find an UnRAR library to extract %s."
-            " Please install `libunrar.so`, `unrar.dll`, or equivalent.",
-            fmsg("%r", "archives"))
+            " Please install `%s` or equivalent to extract RAR archives.",
+            fmsg("%r", "archives"), lib[0])
 
     if rarfile:
         raise u.LegendasTVError(
