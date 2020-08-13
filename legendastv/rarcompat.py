@@ -60,7 +60,7 @@ def import_rarfile(file:str=""):
 
     if rarfile:
         raise u.LegendasTVError(
-            "Could not find a RAR extraction utility%s."
+            "Could not find an UnRAR extraction utility%s."
             " Please install either `unrar`, `unar` or `bsdtar`"
             " to extract RAR archives.",
              fmsg(" for %r"))
@@ -74,15 +74,21 @@ def import_rarfile(file:str=""):
 class ArchiveFile:
     """Wrapper class to handle both RAR and ZIP files transparently"""
     rarfile = None
+    errmsg = "Unsupported archive format, must be RAR or ZIP: %s"
 
-    def __new__(cls, file):
-        if zipfile.is_zipfile(file):
-            return zipfile.ZipFile(file, mode='r')
+    def __new__(cls, filepath:str):
+        if zipfile.is_zipfile(filepath):
+            return zipfile.ZipFile(filepath, mode='r')
 
         if not cls.rarfile:
-            cls.rarfile = import_rarfile()
+            # Test if file is likely a RAR before trying to import an unrar module.
+            # Cannot use rarfile.is_rarfile (yet), and do not use filetools.extension()
+            # to avoid a circular import
+            if not filepath.lower().endswith('.rar'):
+                raise u.LegendasTVError(cls.errmsg, filepath)
+            cls.rarfile = import_rarfile(filepath)
 
-        if cls.rarfile.is_rarfile(file):
-            return cls.rarfile.RarFile(file, mode='r')
+        if cls.rarfile.is_rarfile(filepath):
+            return cls.rarfile.RarFile(filepath, mode='r')
 
-        raise u.LegendasTVError("Unsupported archive format, must be RAR or ZIP: %s", file)
+        raise u.LegendasTVError(cls.errmsg, filepath)
