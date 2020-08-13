@@ -12,53 +12,77 @@ import zipfile
 from . import util as u
 
 
-# Declared before imports are done so alternatives can be logged
 log = logging.getLogger(__name__)
 
 
-rarfile = None
-try:
-    import rarfile  # uses "windows-1252" as default fallback charset
-    log.debug("Handling RAR archives with rarfile")
-    _rarmodule = 'rarfile'
-except ImportError:
-    pass  # avoid nested try/except blocks
-if not rarfile:
+def import_rarfile(file:str=""):
+    """Import and return a properly configured rarfile module"""
+    unrar   = None
+    rarfile = None
+
+    def fmsg(msg, nofile=""):
+        if not file: return nofile
+        return msg % (file,)
+
+    # unrar
     try:
-        from unrar import rarfile
-        log.debug("Handling RAR archives with unrar")
-        _rarmodule = 'unrar'
+        import unrar.rarfile
+        log.debug("Handling RAR archives with module unrar")
+        return unrar.rarfile
     except LookupError:
-        log.warning("UnRAR library not found, will not be able to extract RAR archives.")
-        _rarmodule = 'unrar'
+        # unrar module is installed, but could not find UnRAR library
+        unrar = True
     except ImportError:
-        log.warning("No RAR module found, will not be able to extract RAR archives.")
-        _rarmodule = ""
+        pass
+
+    # rarfile
+    try:
+        import rarfile
+        try:
+            # Early test for extraction tool availability
+            # Would trigger only on RarFile() or extractall() depending on RAR type
+            rarfile.tool_setup()
+            log.debug("Handling RAR archives with module rarfile")
+            return rarfile
+        except rarfile.RarCannotExec:
+            # rarfile module is installed, but could not find UnRAR executable
+            pass
+    except ImportError:
+        pass
+
+    # No success. Handle the several failure cases
+
+    if unrar:
+        raise u.LegendasTVError(
+            "Could not find an UnRAR library to extract %s."
+            " Please install `libunrar.so`, `unrar.dll`, or equivalent.",
+            fmsg("%r", "archives"))
+
+    if rarfile:
+        raise u.LegendasTVError(
+            "Could not find a RAR extraction utility%s."
+            " Please install either `unrar`, `unar` or `bsdtar`"
+            " to extract RAR archives.",
+             fmsg(" for %r"))
+
+    raise u.LegendasTVError(
+        "Missing UnRAR support to extract archive%s,"
+        " please install python module `unrar` or `rarfile`.",
+        fmsg(" %r", "s"))
 
 
 class ArchiveFile:
     """Wrapper class to handle both RAR and ZIP files transparently"""
+    rarfile = None
+
     def __new__(cls, file):
         if zipfile.is_zipfile(file):
             return zipfile.ZipFile(file, mode='r')
-        if not rarfile:
-            if _rarmodule == 'unrar':
-                raise u.LegendasTVError(
-                    "Could not find an UnRAR library to extract %r."
-                    " Please install `libunrar.so`, `libunrar5` or equivalent.", file)
-            raise u.LegendasTVError(
-                "Missing RAR support to extract archive %r,"
-                " please install python module `rarfile` or `unrar`.", file)
-        if rarfile.is_rarfile(file):
-            if _rarmodule == 'rarfile':
-                # Early test for extraction tool availability
-                # Would trigger on either RarFile() or extractall() depending on RAR type
-                try:
-                    rarfile.tool_setup()  # @UndefinedVariable
-                except rarfile.RarCannotExec:  # @UndefinedVariable
-                    raise u.LegendasTVError(
-                        "Could not find a RAR extraction utility for %r."
-                        " Please install either `unrar`, `unar` or `bsdtar`"
-                        " to extract RAR archives.", file)
-            return rarfile.RarFile(file, mode='r')
+
+        if not cls.rarfile:
+            cls.rarfile = import_rarfile()
+
+        if cls.rarfile.is_rarfile(file):
+            return cls.rarfile.RarFile(file, mode='r')
+
         raise u.LegendasTVError("Unsupported archive format, must be RAR or ZIP: %s", file)
