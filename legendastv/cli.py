@@ -117,7 +117,7 @@ def parse_args(argv:list=None) -> t.Tuple[argparse.Namespace, argh.ArghParser]:
 
 def cli(argv:list=None):
     """CLI main function"""
-    logging.basicConfig(format='%(asctime).19s [%(levelname)-.5s] %(message)s')
+    logging.basicConfig(format='%(levelname)s: %(message)s')
     args, parser = parse_args(argv)
     log.debug(args)
     argh.dispatch(parser, argv)
