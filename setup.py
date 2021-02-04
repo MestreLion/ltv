@@ -33,6 +33,7 @@ kwargs = dict(
     keywords         = about['keywords'],
     entry_points     = about['entry_points'],
     install_requires = about['install_requires'],
+    extras_require   = about['extras_require'],
     project_urls     = about['project_urls'],
     package_data     = about['package_data'],
     packages         = packages,

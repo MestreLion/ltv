@@ -69,7 +69,11 @@ install_requires = [
     'argh',
     'guessit',
     'requests',
+    'unrar',
 ]
+extras_require   = {
+    'rarfile': ['rarfile'],
+}
 readme           = "README.md"
 project_urls     = {"Bug Tracker": __url__ + "/issues", "Source Code": __url__}
 package_data     = {'': ['*.md', 'LICENSE*']}
