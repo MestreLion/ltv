@@ -31,16 +31,16 @@ log = logging.getLogger(__name__)
 def search_titles(
         query:str,
         ) -> None:
-    ltv = api.LegendasTV()
-    for title in ltv.search_titles(query):
+    """List Titles matching a search query"""
+    for title in api.LegendasTV().search_titles(query):
         yield(f"{title.id}\t{title.category}\t{title}")
 
 
 def search_subtitles(
         title_id:int,
         ) -> None:
-    ltv = api.LegendasTV()
-    for sub in ltv.search_subtitles(title_id):
+    """List Subtitles from a Title (by ID)"""
+    for sub in api.LegendasTV().search_subtitles(title_id):
         print(f"{sub.hash}\t{sub}")
 
 def extract(
