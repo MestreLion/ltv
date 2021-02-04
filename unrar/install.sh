@@ -17,6 +17,12 @@ mydir=$(dirname "$(readlink -f "$0")")
 archive=$mydir/$(basename "$url")
 tardir=$mydir/$tardir
 
+case "$1" in
+	-h|--help) echo "Usage: ./install.sh [-h|--help] [--clean]"; exit;;
+	--clean) rm -rf -- "$tardir" "$archive" "$mydir"/{"$exename","$libname"}; exit;;
+esac
+
+
 wget --timestamping --directory-prefix "$mydir" -- "$url"
 rm -rf -- "$tardir"
 mkdir -vp -- "$tardir"
