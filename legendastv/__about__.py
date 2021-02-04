@@ -27,7 +27,7 @@ Preferably only trivial string manipulations and basic list/tuple/dict operation
 # Main
 # Literals only
 
-__title__        = "legendastv"  # could be inferred from basename(dirname(__file__)
+__title__        = "legendastv"  # could be inferred from basename(dirname(__file__))
 __project__      = "Legendas.TV API"
 __description__  = "Search, download and extract subtitles from Legendas.TV website"
 __url__          = "https://github.com/MestreLion/legendastv"
@@ -45,7 +45,7 @@ __copyright__    = "Copyright (C) 2020 Rodrigo Silva"
 # https://pypi.org/classifiers/
 python_requires  = '>=3.6'  # Adjust __classifiers__ accordingly!
 classifiers      = [
-    "Development Status :: 1 - Planning",
+    "Development Status :: 2 - Pre-Alpha",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Intended Audience :: End Users/Desktop",
