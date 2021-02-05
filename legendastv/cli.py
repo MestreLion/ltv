@@ -30,20 +30,16 @@ log = logging.getLogger(__name__)
 
 # CLI command wrappers ###################################################
 
-def search_titles(
-        query:str,
-        ) -> None:
+def search_titles(query:str) -> None:
     """List Titles matching a search query"""
     for title in api.LegendasTV().search_titles(query):
         yield(f"{title.id}\t{title.category}\t{title}")
 
 
-def search_subtitles(
-        title_id:int,
-        ) -> None:
+def search_subtitles(title_id:int) -> None:
     """List Subtitles from a Title (by ID)"""
     for sub in api.LegendasTV().search_subtitles(title_id):
-        print(f"{sub.hash}\t{sub}")
+        yield(f"{sub.hash}\t{sub}")
 
 
 def download_subtitle(
@@ -131,11 +127,12 @@ def parse_args(argv:list=None) -> t.Tuple[argparse.Namespace, argh.ArghParser]:
                              " Ignored if storing credentials in keyring.")
 
     argh.add_commands(parser, functions=(
+        # Basic Tools
         filetools.video_hash,
         filetools.guess_info,
         extract,
-    ))
-    argh.add_commands(parser, functions=(
+
+        # Basic Tasks
         search_titles,
         search_subtitles,
         download_subtitle,
