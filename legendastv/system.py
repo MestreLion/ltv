@@ -53,7 +53,8 @@ if   platform == LINUX:
     config_home = os.environ.get('XDG_CONFIG_HOME') or os.path.join(home, '.config')
 elif platform == MACOS:
     # Do NOT use ~/Library/Preferences/ on MACOS! That's for .plists!
-    # Use of XDG_DATA_HOME is opinionated
+    # Use of XDG_DATA_HOME on Mac is debatable, and I'm intentionally deviating from spec,
+    # using '~/Library/Application Support' instead of ~/.config as default *when not set*
     config_home = os.environ.get('XDG_CONFIG_HOME') or data_home
 else:
     config_home = data_home

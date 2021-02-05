@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
 
-# Other subtitle websites to consider:
-# https://megasubtitles.com/
-# https://legendei.to
-# https://legendas.dev/
-
-
 import logging
 # Otherwise it's silent
 logging.basicConfig(level=logging.DEBUG, format='%(asctime).19s [%(levelname)-5s] %(message)s')

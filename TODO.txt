@@ -1,0 +1,9 @@
+Other subtitle websites to consider:
+- https://megasubtitles.com/
+- https://legendei.to
+- https://legendas.dev/
+
+Notifications:
+- Linux/GTK: Dbus (desktop-notify/ier); gi.repository Notify/Gio.Notification; notify-send
+- Windows: win10toast
+- Mac: desktop-notifier; osascript; UserNotifications.UNNotificationRequest; (see maestral)
