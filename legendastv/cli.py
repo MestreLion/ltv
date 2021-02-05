@@ -45,6 +45,26 @@ def search_subtitles(
     for sub in api.LegendasTV().search_subtitles(title_id):
         print(f"{sub.hash}\t{sub}")
 
+
+def download_subtitle(
+        filehash:  str,
+        savedir:   str  = "",
+        basename:  str  = "",
+        overwrite: bool = True,
+        ) -> None:
+    """Download a Subtitle (by Hash) and print its path.
+
+    By default downloads to the cache directory, use '.' for current dir.
+    """
+    if not (config.AUTH['username'] and config.AUTH['password']):
+        raise u.LegendasTVError("Subtitle download requires authentication,"
+                                " please try again using --username and --password"
+                                " to set your credentials.")
+    ltv = api.LegendasTV(config.AUTH['username'], config.AUTH['password'])
+    savedir = savedir or system.save_cache_path(a.__title__)
+    print(ltv.download_subtitle(filehash, savedir, basename, overwrite))
+
+
 def extract(
         archive:   str,
         path:      str  = None,
@@ -118,6 +138,7 @@ def parse_args(argv:list=None) -> t.Tuple[argparse.Namespace, argh.ArghParser]:
     argh.add_commands(parser, functions=(
         search_titles,
         search_subtitles,
+        download_subtitle,
     ))
 
     args = parser.parse_args(argv)

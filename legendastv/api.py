@@ -118,7 +118,7 @@ class HttpEngine:
                     log.debug("using cached file: %s", filename)
                     return filename
 
-                log.debug("downloading to: %s", filename)
+                log.debug("Downloading to: %s", filename)
                 with open(filename, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=None):
                         if chunk:
@@ -373,7 +373,7 @@ class LegendasTV(HttpEngine):
         if empty, the one returned from the website.
         """
         if not self.auth:
-            log.warning("Subtitle download requires authentication.")
+            raise u.LegendasTVError("Subtitle download requires authentication.")
 
         url = '/downloadarquivo/' + filehash
 
