@@ -16,6 +16,7 @@ from   datetime import datetime
 
 import requests
 
+# should preferably not import system or config
 from . import util as u
 from . import model
 
@@ -347,7 +348,7 @@ class LegendasTV(HttpEngine):
                     subtype     = model.SubType(s['subtype'][:1]),
                     language    = self.langflags.get(s['language'], None)
                 )
-                #if u.options['cache']: self.cache(sub.flag)
+                #if c.OPTIONS['cache']: self.cache(sub.flag)
                 log.debug(repr(sub))
                 subs.append(sub)
 

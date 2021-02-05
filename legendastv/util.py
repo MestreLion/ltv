@@ -12,17 +12,6 @@ import typing as t
 
 log = logging.getLogger(__name__)
 
-# Factory settings, can be changed at config file
-# TODO: move all settings to a new settings.py or options.py
-options = {
-    'username'      : "",
-    'password'      : "",
-    'debug'         : True,
-    'cache'         : True,
-    'notifications' : True,
-    'language'      : "pb",
-}
-
 
 class LegendasTVError(Exception):
     """Base class for custom exceptions, with errno and %-formatting for args.

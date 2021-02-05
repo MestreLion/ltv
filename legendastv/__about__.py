@@ -72,6 +72,7 @@ install_requires = [
     'unrar',
 ]
 extras_require   = {
+    'keyring': ['keyring'],
     'rarfile': ['rarfile'],
 }
 readme           = "README.md"

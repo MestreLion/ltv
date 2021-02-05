@@ -20,6 +20,8 @@ logging.getLogger(__package__).handlers.clear()
 from . import __about__ as a
 from . import api
 from . import filetools
+from . import config
+from . import system
 from . import util as u
 
 
@@ -97,6 +99,16 @@ def parse_args(argv:list=None) -> t.Tuple[argparse.Namespace, argh.ArghParser]:
         action="store_const",
         help="Verbose mode, output extra info."
     )
+    parser.add_argument('-C', '--config', help="Path for an alternate configuration file")
+
+    group = parser.add_argument_group("Authentication Options")
+    group.add_argument('-U', '--username', dest='username',
+                        help="Legendas.TV username, will be saved for future uses.")
+    group.add_argument('-P', '--password', dest='password',
+                        help="Legendas.TV password, will be saved for future uses.")
+    group.add_argument('-A', '--authfile', dest='authfile',
+                        help="Path for an alternate auth credentials file."
+                             " Ignored if storing credentials in keyring.")
 
     argh.add_commands(parser, functions=(
         filetools.video_hash,
@@ -117,9 +129,16 @@ def parse_args(argv:list=None) -> t.Tuple[argparse.Namespace, argh.ArghParser]:
 
 def cli(argv:list=None):
     """CLI main function"""
-    logging.basicConfig(format='%(levelname)s: %(message)s')
+    logging.basicConfig(format='%(levelname)-8s: %(message)s')
+    # rebulk, used by guessit, is too chatty at DEBUG level
+    logging.getLogger('rebulk').setLevel(logging.WARNING)
+
     args, parser = parse_args(argv)
     log.debug(args)
+
+    config.read_config(args)
+    config.read_auth(args)
+
     argh.dispatch(parser, argv)
 
 
