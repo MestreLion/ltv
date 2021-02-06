@@ -115,7 +115,7 @@ class HttpEngine:
                 filename = os.path.join(savedir, os.path.basename(filename))
 
                 if not overwrite and os.path.isfile(filename):
-                    log.debug("using cached file: %s", filename)
+                    log.debug("Using cached file: %s", filename)
                     return filename
 
                 log.debug("Downloading to: %s", filename)
@@ -314,13 +314,13 @@ class LegendasTV(HttpEngine):
         if subtype and subtype not in subtypes:
             raise u.LegendasTVError("Invalid subtitle type: %s (accepts: %s)", subtype, subtypes)
 
-        title_id = title_id or allchar
+        tid      = title_id or allchar
         lang     = self.languages.get(lang, {}).get('id', allchar)
         query    = self.quote_partial(query or allchar)
         subtype  = str(subtype) or allchar
         page     = 0
 
-        url = f"/legenda/busca/{query}/{lang}/{subtype}/{page}/{title_id}/"
+        url = f"/legenda/busca/{query}/{lang}/{subtype}/{page}/{tid}/"
 
         subs: t.List[model.Subtitle] = []
         while url:
@@ -339,6 +339,7 @@ class LegendasTV(HttpEngine):
                     _raw        = data.group(0),
                     hash        = s['hash'],
                     url         = self.download_url + s['hash'],
+                    title_id    = title_id,
                     title       = s['title'],
                     downloads   = u.toint(s['downloads']),
                     rating      = u.toint(s['rating'], None),
@@ -365,7 +366,7 @@ class LegendasTV(HttpEngine):
         filehash:  str,
         savedir:   str,
         basename:  str  = "",
-        overwrite: bool = True
+        overwrite: bool = False
     ) -> str:
         """Download a subtitle given its ID (hash), and return its saved path.
 

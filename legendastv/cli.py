@@ -19,9 +19,10 @@ logging.getLogger(__package__).handlers.clear()
 
 from . import __about__ as a
 from . import api
-from . import filetools
 from . import config
+from . import filetools
 from . import system
+from . import tasks
 from . import util as u
 
 
@@ -52,13 +53,8 @@ def download_subtitle(
 
     By default downloads to the cache directory, use '.' for current dir.
     """
-    if not (config.AUTH['username'] and config.AUTH['password']):
-        raise u.LegendasTVError("Subtitle download requires authentication,"
-                                " please try again using --username and --password"
-                                " to set your credentials.")
-    ltv = api.LegendasTV(config.AUTH['username'], config.AUTH['password'])
     savedir = savedir or system.save_cache_path(a.__title__)
-    print(ltv.download_subtitle(filehash, savedir, basename, overwrite))
+    return tasks.get_ltv().download_subtitle(filehash, savedir, basename, overwrite)
 
 
 def extract(
