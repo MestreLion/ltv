@@ -6,6 +6,7 @@
     Globals and assorted utilities
 """
 
+import difflib
 import logging
 import typing as t
 
@@ -47,3 +48,20 @@ def clsrepr(obj:object, sig:str) -> str:
 
 def fullrepr(obj:object, attrs:t.Iterable[str]) -> str:
     return clsrepr(obj, ', '.join(f"{__}={getattr(obj, __)!r}" for __ in attrs))
+
+
+def similarity(text1, text2, ignorecase=True):
+    """Return a float in [0,1] range representing the similarity of 2 strings"""
+    if ignorecase:
+        text1 = text1.lower()
+        text2 = text2.lower()
+    return difflib.SequenceMatcher(None, text1, text2).ratio()
+
+
+def match_filter(objs, **attrs):
+    def match(obj):
+        for a, v in attrs.items():
+            if not hasattr(obj, a) or not getattr(obj, a) == v:
+                return False
+        return True
+    return filter(match, objs)
