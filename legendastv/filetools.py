@@ -9,6 +9,7 @@
 import logging
 import pprint
 import os
+import shutil
 import struct
 
 import guessit
@@ -194,6 +195,14 @@ def extract_archive(archive:   str,
         return outputfiles, recursion
 
     return outputfiles
+
+
+def rename_srt(srtpath, videopath):
+    """Copy an SRT file to the same dir as a Video file, also renaming to match it"""
+    try:
+        return shutil.copyfile(srtpath, "{}.srt".format(os.path.splitext(videopath)[0]))
+    except shutil.SameFileError:
+        return srtpath
 
 
 def makedirs(path:str):

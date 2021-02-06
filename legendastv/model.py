@@ -8,6 +8,7 @@
 
 import enum
 import logging
+import os
 import typing as t
 
 from . import util as u
@@ -128,3 +129,75 @@ class Subtitle:
     def __str__(self):
         typechar = self._typechar_map.get(self.subtype, ' ')
         return f"<{self.url}> {typechar} {self.release}"
+
+
+class VideoFile:
+    """Video file and (guessed) attributes"""
+
+    # Optional instance attributes and their defaults
+    _fields = dict(
+        type          = ('type',         ""),
+        title         = ('title',        ""),
+        year          = ('year',          0),
+        season        = ('season',        0),
+        episode       = ('episode',       0),
+        episode_title = ('episode_title', 0),
+    )
+    _guess_category: t.ClassVar[t.Dict[str, Category]] = {
+        'movie':   Category.MOVIE,
+        'episode': Category.SEASON,
+    }
+
+    def __init__(self, path, category=None, titleobj=None, subtitle=None, **kwargs):
+        self.path = path
+        self.category = category
+        self.titleobj = titleobj
+        self.subtitle = subtitle
+        for k, (v, d) in self._fields.items():
+            setattr(self, k, kwargs.pop(v, d))
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+    @property
+    def basename(self):
+        return os.path.basename(self.path)
+
+    @property
+    def dirname(self):
+        return os.path.basename(os.path.dirname(self.path))
+
+    @property
+    def release(self):
+        return '/'.join((self.dirname, self.basename))
+
+    @classmethod
+    def from_guess(cls, path, guess:dict):
+        """Return an instance from its guessed attributes"""
+        return cls(path, cls._guess_category.get(guess.get('type')), **guess.copy())
+
+    def match_category(self, title:Title):
+        """Check if a VideoFile type is compatible with a Title Category
+
+        They're compatible if either:
+        - Video category is unknown (None)
+        - Video category is Title category
+        - Title Category is CARTOON (since a Cartoon can be a movie or an episode)
+        """
+        return not self.category or title.category in (self.category, Category.CARTOON)
+
+    def __repr__(self):
+        fields = ['type', 'title']
+        if self.type == 'episode':
+            fields.extend(('season', 'episode'))
+        else:
+            fields.append('year')
+        return u.fullrepr(self, fields)
+
+    def __str__(self):
+        s = self.title.strip()
+        if self.season:        s += f" S{self.season:02}"
+        if self.episode:       s += f"E{self.episode:02}"
+        if self.episode_title: s += f" ({self.episode_title})"
+        if self.year:          s += f" - {self.year}"
+        s += f" [{self.release}]"
+        return s.strip()

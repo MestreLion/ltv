@@ -20,6 +20,7 @@ logging.getLogger(__package__).handlers.clear()
 from . import __about__ as a
 from . import api
 from . import config
+from . import interactive
 from . import filetools
 from . import system
 from . import tasks
@@ -132,6 +133,9 @@ def parse_args(argv:list=None) -> t.Tuple[argparse.Namespace, argh.ArghParser]:
         search_titles,
         search_subtitles,
         download_subtitle,
+
+        # Modes
+        interactive.interactive
     ))
 
     args = parser.parse_args(argv)
