@@ -42,7 +42,7 @@ class Title:
 
     # Guaranteed instance attributes and their defaults
     _fields = (
-        ('id',      0)
+        ('id',      0),
         ('title',  ""),
         ('year',    0),
         ('season',  0),
