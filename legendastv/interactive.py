@@ -50,7 +50,7 @@ def interactive(path:str):
     if not ft.is_video(path):
         log.warning("File does not seem to be a Video: %s", path)
 
-    guess = ft.guess_info(path)
+    guess = u.guess_info(path)
     log.debug(repr(guess))
 
     video = model.VideoFile.from_guess(path, guess)
@@ -80,7 +80,7 @@ def interactive(path:str):
     def match_subtitle(subtitle):
         if subtitle.subtype == model.SubType.PACK:
             return True
-        episode = ft.guess_info(subtitle.release).get('episode')
+        episode = u.guess_info(subtitle.release).get('episode')
         if (
                 (video.titleobj and not video.titleobj.category == model.Category.MOVIE)
             and (video.episode and episode and not video.episode == episode)
@@ -96,7 +96,7 @@ def interactive(path:str):
     log.debug("Archive: %s", archive)
 
     def match_srt(srt):
-        episode = ft.guess_info(srt).get('episode')
+        episode = u.guess_info(srt).get('episode')
         if (video.episode and episode and not video.episode == episode):
             return False
         return True

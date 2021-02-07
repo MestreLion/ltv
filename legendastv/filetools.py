@@ -12,8 +12,6 @@ import os
 import shutil
 import struct
 
-import guessit
-
 from . import util as u
 from . import rarcompat
 
@@ -264,7 +262,3 @@ def video_hash(filepath:str) -> str:
             raise u.LegendasTVError("File must be at least %d bytes to hash: %s",
                                     block, filepath)
     return f"{vhash:016x}"
-
-
-def guess_info(filename:str) -> dict:
-    return guessit.guessit(filename)

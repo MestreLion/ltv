@@ -36,9 +36,9 @@ from .__about__ import (
     __copyright__,
 )
 from .api       import LegendasTV
-from .filetools import extract_archive, is_video, guess_info
+from .filetools import extract_archive, is_video
 from .model     import Title, Movie, Season, Cartoon, Subtitle, SubType, Category
-from .util      import LegendasTVError
+from .util      import LegendasTVError, guess_info
 
 
 # https://docs.python.org/3/howto/logging.html#configuring-logging-for-a-library

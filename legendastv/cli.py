@@ -126,7 +126,7 @@ def parse_args(argv:list=None) -> t.Tuple[argparse.Namespace, argh.ArghParser]:
     argh.add_commands(parser, functions=(
         # Basic Tools
         filetools.video_hash,
-        filetools.guess_info,
+        u.guess_info,
         extract,
 
         # Basic Tasks

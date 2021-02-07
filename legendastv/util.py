@@ -10,6 +10,8 @@ import difflib
 import logging
 import typing as t
 
+import guessit
+
 
 log = logging.getLogger(__name__)
 
@@ -48,6 +50,14 @@ def clsrepr(obj:object, sig:str) -> str:
 
 def fullrepr(obj:object, attrs:t.Iterable[str]) -> str:
     return clsrepr(obj, ', '.join(f"{__}={getattr(obj, __)!r}" for __ in attrs))
+
+
+def guess_info(text:str) -> dict:
+    """Guess all Video/Title-related info about a text and return as a Dictionary.
+
+    For files, providing the full path yields more accurate results.
+    """
+    return guessit.guessit(text)
 
 
 def similarity(text1, text2, ignorecase=True):
