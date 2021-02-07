@@ -1,3 +1,16 @@
+Interactive Direct mode:
+- Skip Title search, search directly for subtitles using ltv.search_subtitles(query=title)
+    instead of title.id
+- Add type, title, season, episode to interactive/CLI arguments, to update guess
+
+Batch/Directory (interactive) mode:
+- For each file that filetools.is_video(), do interactive()
+- interactive() should "remember" previous choices of Title and Subtitle (if Pack) and re-apply
+- Remember by "name", not index, as they can change on every search
+- Auto-suggest the most similar as default choice, first comparing with video,
+    then with previous choice
+
+
 Properly integrate and/or document /unrar/install.py:
 - setup.py might trigger the build, consider as package data and move to package?
 - rarcompat.py could look into /unrar/ for the library instead or in addition to /legendastv
