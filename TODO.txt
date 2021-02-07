@@ -1,3 +1,15 @@
+Properly integrate and/or document /unrar/install.py:
+- setup.py might trigger the build, consider as package data and move to package?
+- rarcompat.py could look into /unrar/ for the library instead or in addition to /legendastv
+- /unrar/install.py could copy built files to /legendastv
+- Maybe the all above options should use system.save_data_path() instead?
+- Delete /unrar/install.sh, it's redundant and not as complete as /unrar/install.py
+- Rename /unrar/install.py to /unrar/install ?
+- /unrar/README.md should definately mention /unrar/install.py and the way to integrate
+- For those reading this, the current status is:
+    - Run /unrar/install.py to generate your platform-specific libs at /unrar/
+    - Move/Copy those libs to /legendastv, rarcompat.py will use it as last fallback option
+
 Other subtitle websites to consider:
 - https://megasubtitles.com/
 - https://legendei.to
