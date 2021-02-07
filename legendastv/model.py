@@ -197,6 +197,44 @@ class VideoFile:
         """
         return not self.category or title.category in (self.category, Category.CARTOON)
 
+    def match_title(self, title, strict=False):
+        """Check if this VideoFile is compatible with a Title
+
+        They're compatible if all conditions check:
+        - If <strict>, Category must be compatible (via .match_category()).
+        - If this is a movie and both have an Year, it must match.
+        - If this is an episode and both have a Season, it must match.
+        """
+        if strict and not self.match_category(title):
+            return False
+
+        if self.category == Category.MOVIE and self.year and title.year:
+            return (self.year == title.year)
+
+        if self.category == Category.SEASON and self.season and title.season:
+            return (self.season == title.season)
+
+        return True
+
+    def match_subtitle(self, subtitle):
+        """Check if this VideoFile is compatible with a Subtitle
+
+        They're compatible if all conditions check:
+        - Title guessed from Subtitle Release is compatible (via .match_title()).
+        - If this is an episode, the Subtitle is not a Pack, and both this and the guess
+          have an Episode, it must match.
+        """
+        guess = u.guess_info(subtitle.release)
+        if not self.match_title(Title.from_category(self.category, guess)):
+            return False
+
+        if self.category == Category.SEASON and not subtitle.subtype == SubType.PACK:
+            episode = guess.get('episode')
+            if self.episode and episode:
+                return (self.episode == episode)
+
+        return True
+
     def __repr__(self):
         fields = ['type', 'title']
         if self.type == 'episode':

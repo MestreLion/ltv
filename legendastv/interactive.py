@@ -46,7 +46,7 @@ def choose(options, candidate, tag, match=None):
 
 
 
-def interactive(path:str):
+def interactive(path:str, direct=False):
     if not ft.is_video(path):
         log.warning("File does not seem to be a Video: %s", path)
 
@@ -58,37 +58,11 @@ def interactive(path:str):
 
     ltv = tasks.get_ltv()
 
-    # Good candidate for a model.VideoFile method
-    def match_title(title):
-        # Too many mis-categorized Titles in Legendas.TV (WestWorld Season 3 is Movie)
-        #if not video.match_category(title):
-        #    return False
-
-        if video.category == model.Category.MOVIE  and video.year:
-            return (title.year == video.year)
-
-        if video.category == model.Category.SEASON and video.season:
-            return (title.season == video.season)
-
-        return True
-
-    title = choose(ltv.search_titles(video.title), video, 'titles', match_title)
+    title = choose(ltv.search_titles(video.title), video, 'titles', video.match_title)
     video.titleobj = title
     log.debug("Chosen Title: %r", title)
 
-    # Also a good candidate for a model.VideoFile method
-    def match_subtitle(subtitle):
-        if subtitle.subtype == model.SubType.PACK:
-            return True
-        episode = u.guess_info(subtitle.release).get('episode')
-        if (
-                (video.titleobj and not video.titleobj.category == model.Category.MOVIE)
-            and (video.episode and episode and not video.episode == episode)
-        ):
-            return False
-        return True
-
-    subtitle = choose(ltv.search_subtitles(title.id), video, 'subtitles', match_subtitle)
+    subtitle = choose(ltv.search_subtitles(title.id), video, 'subtitles', video.match_subtitle)
     video.subtitle = subtitle
     log.debug("Chosen Subtitle: %r", subtitle)
 
