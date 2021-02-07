@@ -40,15 +40,26 @@ class Title:
     # Populated on first cls.from_data() run, as it depends on __subclasses__
     _subclass_mapping: t.ClassVar[t.Dict[Category, 'Title']] = {}
 
+    # Guaranteed instance attributes and their defaults
+    _fields = (
+        ('id',      0)
+        ('title',  ""),
+        ('year',    0),
+        ('season',  0),
+        ('imdb_id', 0),
+    )
+
     def __init__(self, **kwargs):
         self._ltv = kwargs.pop('_ltv', None)
         self._raw = kwargs.pop('_raw', None)
+        for k, v in self._fields:
+            setattr(self, k, kwargs.pop(k, v))
         for k, v in kwargs.items():
             setattr(self, k, v)
 
     @property
     def imdb_url(self) -> str:
-        if not getattr(self, 'imdb_id', None): return ""
+        if not self.imdb_id: return ""
         return f"https://www.imdb.com/title/tt{self.imdb_id:07}/"
 
     @classmethod
@@ -73,10 +84,11 @@ class Title:
         return u.fullrepr(self, ('id', 'year', 'title', 'imdb_id'))
 
     def __str__(self):
+        native = getattr(self, 'native', self.title) or self.title
         s = self.title.strip()
-        if self.season:                               s += f" S{self.season:02}"
-        if self.native and self.native != self.title: s += f" [{self.native.strip()}]"
-        if self.year:                                 s += f" - {self.year}"
+        if self.season:          s += f" S{self.season:02}"
+        if native != self.title: s += f" [{self.native.strip()}]"
+        if self.year:            s += f" - {self.year}"
         return s.strip()
 
 
@@ -134,7 +146,7 @@ class Subtitle:
 class VideoFile:
     """Video file and (guessed) attributes"""
 
-    # Optional instance attributes and their defaults
+    # Guaranteed instance attributes and their defaults
     _fields = dict(
         type          = ('type',         ""),
         title         = ('title',        ""),
@@ -176,7 +188,7 @@ class VideoFile:
         return cls(path, cls._guess_category.get(guess.get('type')), **guess.copy())
 
     def match_category(self, title:Title):
-        """Check if a VideoFile type is compatible with a Title Category
+        """Check if this VideoFile type is compatible with a Title Category
 
         They're compatible if either:
         - Video category is unknown (None)
