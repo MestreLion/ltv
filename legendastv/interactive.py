@@ -69,12 +69,7 @@ def interactive(path:str, direct=False):
     archive = ltv.download_subtitle(subtitle.hash, system.save_cache_path(a.__title__))
     log.debug("Archive: %s", archive)
 
-    def match_srt(srt):
-        episode = u.guess_info(srt).get('episode')
-        if (video.episode and episode and not video.episode == episode):
-            return False
-        return True
-    srt = choose(ft.extract_archive(archive, extlist='srt'), video, 'SRTs', match_srt)
+    srt = choose(ft.extract_archive(archive, extlist='srt'), video, 'SRTs', video.match_srt)
     log.debug("Chosen SRT: %s", os.path.basename(srt))
 
     ft.copy_srt(srt, video.path)

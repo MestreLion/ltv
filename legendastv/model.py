@@ -235,6 +235,10 @@ class VideoFile:
 
         return True
 
+    def match_srt(self, srt):
+        episode = u.guess_info(srt).get('episode')
+        return not self.episode or not episode or self.episode == episode
+
     def __repr__(self):
         fields = ['type', 'title']
         if self.type == 'episode':
