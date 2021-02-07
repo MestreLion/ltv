@@ -103,5 +103,5 @@ def interactive(path:str):
     srt = choose(ft.extract_archive(archive, extlist='srt'), video, 'SRTs', match_srt)
     log.debug("Chosen SRT: %s", os.path.basename(srt))
 
-    ft.rename_srt(srt, video.path)
+    ft.copy_srt(srt, video.path)
     log.info("Done!")

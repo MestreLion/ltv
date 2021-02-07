@@ -195,8 +195,8 @@ def extract_archive(archive:   str,
     return outputfiles
 
 
-def rename_srt(srtpath, videopath):
-    """Copy an SRT file to the same dir as a Video file, also renaming to match it"""
+def copy_srt(srtpath, videopath):
+    """Copy an SRT file to the same directory of a Video file and rename to match it"""
     try:
         return shutil.copyfile(srtpath, "{}.srt".format(os.path.splitext(videopath)[0]))
     except shutil.SameFileError:
