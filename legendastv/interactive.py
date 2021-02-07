@@ -20,33 +20,35 @@ from . import util as u
 log = logging.getLogger(__name__)
 
 
-def choose(options, candidate, tag, match=None):
+def choose(options, candidate, tag, fmatch=None, fdisplay=str):
     if not options:
         raise u.LegendasTVError("No %s found matching '%s'", tag, candidate)
 
-    if match:
-        options = tuple(filter(match, options))
-
-    if len(options) == 1:
-        return options[0]
+    if fmatch:
+        options = tuple(filter(fmatch, options))
+        if not options:
+            raise u.LegendasTVError("No %s found matching '%s' after filter.",
+                                    tag, candidate)
 
     def tryint(text):
         try:               return int(text)
         except ValueError: return 0
 
-    res = 0
     length = len(options)
+    res = 1 if length == 1 else 0  # automatically bypass choice loop if single option
     while not (1 <= res <= length):
-        print(f"\nFound {length} {tag} matching '{candidate}':")
+        print(f"\nFound {length} {tag}s matching '{candidate}':")
         for i, option in enumerate(options, 1):
-            print(f"[{i:2d}] {option}")
+            print(f"[{i:2d}] {fdisplay(option)}")
         res = tryint(input("Your choice: "))
-    return options[res - 1]
+
+    option = options[res - 1]
+    log.info("Selected %s: %r", tag, fdisplay(option))
+    log.debug(repr(option))
+    return option
 
 
-
-
-def interactive(path:str, direct=False):
+def interactive(path:str):
     if not ft.is_video(path):
         log.warning("File does not seem to be a Video: %s", path)
 
@@ -58,19 +60,14 @@ def interactive(path:str, direct=False):
 
     ltv = tasks.get_ltv()
 
-    title = choose(ltv.search_titles(video.title), video, 'titles', video.match_title)
-    video.titleobj = title
-    log.debug("Chosen Title: %r", title)
-
-    subtitle = choose(ltv.search_subtitles(title.id), video, 'subtitles', video.match_subtitle)
-    video.subtitle = subtitle
-    log.debug("Chosen Subtitle: %r", subtitle)
+    title    = choose(ltv.search_titles(video.title), video, 'Title',    video.match_title)
+    subtitle = choose(ltv.search_subtitles(title.id), video, 'Subtitle', video.match_subtitle)
 
     archive = ltv.download_subtitle(subtitle.hash, system.save_cache_path(a.__title__))
     log.debug("Archive: %s", archive)
 
-    srt = choose(ft.extract_archive(archive, extlist='srt'), video, 'SRTs', video.match_srt)
-    log.debug("Chosen SRT: %s", os.path.basename(srt))
+    srt = choose(ft.extract_archive(archive, extlist='srt'), video, 'SRT',
+                 video.match_srt, os.path.basename)
 
     ft.copy_srt(srt, video.path)
     log.info("Done!")
