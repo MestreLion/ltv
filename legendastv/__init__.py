@@ -22,7 +22,7 @@ Mostly setup for usage as a library, such as exporting main names from modules
 and adding NullHandler to package logger
 """
 
-import logging
+import logging as _logging
 
 from .__about__ import (
     __title__,
@@ -36,10 +36,10 @@ from .__about__ import (
     __copyright__,
 )
 from .api       import LegendasTV
-from .filetools import extract_archive, is_video
-from .model     import Title, Movie, Season, Cartoon, Subtitle, SubType, Category
+from .filetools import mimetype, extract_archive, copy_srt, extension, is_video, video_hash
+from .model     import Category, SubType, Title, Movie, Season, Cartoon, Subtitle, VideoFile
 from .util      import LegendasTVError, guess_info
 
 
 # https://docs.python.org/3/howto/logging.html#configuring-logging-for-a-library
-logging.getLogger(__name__).addHandler(logging.NullHandler())
+_logging.getLogger(__name__).addHandler(_logging.NullHandler())
