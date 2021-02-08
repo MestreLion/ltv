@@ -71,6 +71,8 @@ def similarity(text1, text2, ignorecase=True):
 def match_filter(objs, **attrs):
     def match(obj):
         for a, v in attrs.items():
+            if v is None:
+                continue
             if not hasattr(obj, a) or not getattr(obj, a) == v:
                 return False
         return True

@@ -247,7 +247,7 @@ class LegendasTV(HttpEngine):
         self.auth = 'href="/users/logout"' in content
         return self.auth
 
-    def search_titles(self, query:str) -> t.List[model.Title]:
+    def search_titles(self, query:str, **filters) -> t.List[model.Title]:
         """Main API method to search titles from a query text"""
         url = "/legenda/sugestao/" + self.quote_partial(query)
         try:
@@ -265,6 +265,10 @@ class LegendasTV(HttpEngine):
                 continue
             log.debug(repr(title))
             titles.append(title)
+
+        if filters:
+            titles = u.match_filter(titles, **filters)
+
         return titles
 
     def _title_from_json(self, data:dict) -> model.TTitle:

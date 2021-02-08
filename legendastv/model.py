@@ -135,7 +135,7 @@ class Subtitle:
         return self.subtype == SubType.FEATURED
 
     def __repr__(self):
-        fields = ['hash', 'release', 'username', 'date', 'downloads', 'subtype']
+        fields = ['hash', 'title', 'release', 'username', 'date', 'downloads', 'subtype']
         return u.fullrepr(self, fields)
 
     def __str__(self):
@@ -160,11 +160,9 @@ class VideoFile:
         'episode': Category.SEASON,
     }
 
-    def __init__(self, path, category=None, titleobj=None, subtitle=None, **kwargs):
+    def __init__(self, path, category=None, **kwargs):
         self.path = path
         self.category = category
-        self.titleobj = titleobj
-        self.subtitle = subtitle
         for k, (v, d) in self._fields.items():
             setattr(self, k, kwargs.pop(v, d))
         for k, v in kwargs.items():
@@ -228,7 +226,7 @@ class VideoFile:
         if not self.match_title(Title.from_category(self.category, guess)):
             return False
 
-        if self.category == Category.SEASON and not subtitle.subtype == SubType.PACK:
+        if self.category == Category.SEASON and not subtitle.pack:
             episode = guess.get('episode')
             if self.episode and episode:
                 return (self.episode == episode)
