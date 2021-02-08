@@ -171,8 +171,9 @@ def main(argv:list=None):
         # https://docs.python.org/3/library/signal.html#note-on-sigpipe
         devnull = os.open(os.devnull, os.O_WRONLY)
         os.dup2(devnull, sys.stdout.fileno())
+    except (KeyboardInterrupt, EOFError):
+        print()
+        sys.exit(2)  # signal.SIGINT.value
     except Exception as e:
         log.critical(e, exc_info=True)
         sys.exit(1)
-    except KeyboardInterrupt:
-        sys.exit(2)  # signal.SIGINT.value
