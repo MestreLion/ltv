@@ -20,15 +20,19 @@ from . import util as u
 log = logging.getLogger(__name__)
 
 
-def choose(options, candidate, tag, fmatch=None, fdisplay=str):
+def choose(options, candidate, tag, fmatch=None, fdisplay=str, filters:dict=None):
     if not options:
         raise u.LegendasTVError("No %s found matching '%s'", tag, candidate)
 
+    if filters:
+        options = u.match_filter(options, **filters)
+
     if fmatch:
         options = tuple(filter(fmatch, options))
-        if not options:
-            raise u.LegendasTVError("No %s found matching '%s' after filter.",
-                                    tag, candidate)
+
+    if not options:
+        raise u.LegendasTVError("No %s found matching '%s' after filter.",
+                                tag, candidate)
 
     def tryint(text):
         try:               return int(text)
@@ -48,7 +52,24 @@ def choose(options, candidate, tag, fmatch=None, fdisplay=str):
     return option
 
 
-def interactive(path:str, direct:bool=False):
+def interactive(
+        path:str,
+        title:str=None, year:int=None, season:int=None, category:model.Category=None,
+        direct:bool=False,
+    ):
+    """Interactive mode to search, download, extract and rename subtitles.
+
+    Will ask to choose a Title, Subtitle and SRT if needed.
+
+    <direct> skip Title search, which usually lead to many (unrelated) Subtitle choices.
+
+    Usually the Video (full) path is enough for relevant choices, use <filters> to
+      force an exact match on any Title or Subtitle attribute, narrowing down choices.
+      (for `category`, use either `movie`, `season` (for series' episodes) or `cartoon`)
+    """
+    if isinstance(category, str):
+        category = model.Category.from_string(category)
+
     if not ft.is_video(path):
         log.warning("File does not seem to be a Video: %s", path)
 
@@ -63,16 +84,22 @@ def interactive(path:str, direct:bool=False):
     if direct:
         search = dict(query=video.title)
     else:
-        title = choose(ltv.search_titles(video.title), video, 'Title', video.match_title)
-        search = dict(title_id=title.id)
+        tid = choose(
+            ltv.search_titles(video.title), video, 'Title', video.match_title,
+            filters=dict(title=title, year=year, season=season, category=category)
+        ).id
+        search = dict(title_id=tid)
 
-    subtitle = choose(ltv.search_subtitles(**search), video, 'Subtitle', video.match_subtitle)
+    subtitle = choose(
+        ltv.search_subtitles(**search), video, 'Subtitle', video.match_subtitle,
+        filters=(dict(title=title.replace(' ', '_')) if title is not None else {})
+    )
 
     archive = ltv.download_subtitle(subtitle.hash, system.save_cache_path(a.__title__))
     log.debug("Archive: %s", archive)
 
     srt = choose(ft.extract_archive(archive, extlist='srt'), video, 'SRT',
-                 video.match_srt, os.path.basename)
+                 video.match_srt, fdisplay=os.path.basename)
 
     ft.copy_srt(srt, video.path)
     log.info("Done!")

@@ -24,6 +24,20 @@ class Category(enum.Enum):
     SEASON  = 'S'
     CARTOON = 'C'
 
+    @classmethod
+    def from_string(cls, s):
+        """Try by name then first letter by value, always case-insensitive"""
+        s = s.upper()
+        try:
+            return cls[s]
+        except KeyError:
+            try:
+                return cls(s[0])
+            except ValueError as e:
+                raise u.LegendasTVError("%s, try '%s' (or simply '%s')", e,
+                                        "' or '".join(_.name for _ in cls),
+                                        "', '".join(_.value for _ in cls))
+
 
 class SubType(enum.Enum):
     REGULAR  = ''
