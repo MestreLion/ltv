@@ -1,6 +1,4 @@
 Interactive Direct mode:
-- Skip Title search, search directly for subtitles using ltv.search_subtitles(query=title)
-    instead of title.id
 - Add type, title, season, episode to interactive/CLI arguments, to update guess
 
 Batch/Directory (interactive) mode:

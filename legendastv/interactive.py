@@ -48,7 +48,7 @@ def choose(options, candidate, tag, fmatch=None, fdisplay=str):
     return option
 
 
-def interactive(path:str):
+def interactive(path:str, direct:bool=False):
     if not ft.is_video(path):
         log.warning("File does not seem to be a Video: %s", path)
 
@@ -60,8 +60,13 @@ def interactive(path:str):
 
     ltv = tasks.get_ltv()
 
-    title    = choose(ltv.search_titles(video.title), video, 'Title',    video.match_title)
-    subtitle = choose(ltv.search_subtitles(title.id), video, 'Subtitle', video.match_subtitle)
+    if direct:
+        search = dict(query=video.title)
+    else:
+        title = choose(ltv.search_titles(video.title), video, 'Title', video.match_title)
+        search = dict(title_id=title.id)
+
+    subtitle = choose(ltv.search_subtitles(**search), video, 'Subtitle', video.match_subtitle)
 
     archive = ltv.download_subtitle(subtitle.hash, system.save_cache_path(a.__title__))
     log.debug("Archive: %s", archive)
