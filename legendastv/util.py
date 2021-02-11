@@ -43,6 +43,24 @@ def strip(text:str):
     if text is not None:
         return text.strip()
 
+def filtered(d, *keys, whitelist=True, exclude_nones=True):
+    """Filter a dict, returning a copy with only (or all but) the selected keys"""
+    if not keys:
+        return d
+
+    # For performance reasons, dict comprehension is repeated in each branch
+
+    # Whitelist, only selected keys
+    if whitelist:
+        if exclude_nones:
+            return {k: v for k, v in d.items() if k     in keys and v is not None}
+        return     {k: v for k, v in d.items() if k     in keys}
+
+    # Blacklist, all but the selected keys
+    if exclude_nones:
+        return     {k: v for k, v in d.items() if k not in keys and v is not None}
+    return         {k: v for k, v in d.items() if k not in keys}
+
 
 def clsrepr(obj:object, sig:str) -> str:
     return f"<{obj.__class__.__name__}({sig})>"

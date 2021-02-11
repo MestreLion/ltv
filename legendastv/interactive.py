@@ -25,6 +25,7 @@ def choose(options, candidate, tag, fmatch=None, fdisplay=str, filters:dict=None
         raise u.LegendasTVError("No %s found matching '%s'", tag, candidate)
 
     if filters:
+        log.debug("Filters: %s", filters)
         options = u.match_filter(options, **filters)
 
     if fmatch:
@@ -54,8 +55,9 @@ def choose(options, candidate, tag, fmatch=None, fdisplay=str, filters:dict=None
 
 def interactive(
         path:str,
-        title:str=None, year:int=None, season:int=None, category:model.Category=None,
-        direct:bool=False,
+        title:str=None, year:int=None, season:int=None, episode:int=None,
+        category:model.Category=None,
+        direct:bool=False, exact:bool=False
     ):
     """Interactive mode to search, download, extract and rename subtitles.
 
@@ -70,12 +72,18 @@ def interactive(
     if isinstance(category, str):
         category = model.Category.from_string(category)
 
+    # This should not be needed given a proper CLI argparser / dispatcher
+    if year    is not None: year    = int(year)
+    if season  is not None: season  = int(season)
+    if episode is not None: episode = int(episode)
+
     if not ft.is_video(path):
         log.warning("File does not seem to be a Video: %s", path)
 
     guess = u.guess_info(path)
     log.debug(repr(guess))
 
+    guess.update(u.filtered(locals(), 'title', 'year', 'season', 'episode', 'category'))
     video = model.VideoFile.from_guess(path, guess)
     log.debug(repr(video))
 
@@ -86,13 +94,14 @@ def interactive(
     else:
         tid = choose(
             ltv.search_titles(video.title), video, 'Title', video.match_title,
-            filters=dict(title=title, year=year, season=season, category=category)
+            filters=(u.filtered(locals(), 'title', 'year', 'season', 'category')
+                     if exact else None)
         ).id
         search = dict(title_id=tid)
 
     subtitle = choose(
         ltv.search_subtitles(**search), video, 'Subtitle', video.match_subtitle,
-        filters=(dict(title=title.replace(' ', '_')) if title is not None else {})
+        filters=(dict(title=title.replace(' ', '_')) if title is not None and exact else {})
     )
 
     archive = ltv.download_subtitle(subtitle.hash, system.save_cache_path(a.__title__))
