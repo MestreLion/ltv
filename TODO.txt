@@ -1,5 +1,20 @@
-Interactive Direct mode:
-- Add type, title, season, episode to interactive/CLI arguments, to update guess
+GUI
+- PySimpleGUI
+    - PySimpleGUIQt:
+        Easy install in Ubuntu, huge size, not native look
+        pip3 install --upgrade PySimpleGUIQt  # pulls PySide2
+    - PySimpleGUIWx:
+        Requires apt install in Ubuntu, smaller size, native look
+        sudo apt install python3-wxgtk4.0
+        pip3 install --upgrade PySimpleGUIWx
+
+
+- Also take a loot at https://github.com/alfiopuglisi/guietta
+
+Interactive mode:
+- Add --exact for filters (category, title, year, season, episode)
+  - False: update guess
+  - True: update guess AND filter results
 
 Batch/Directory (interactive) mode:
 - For each file that filetools.is_video(), do interactive()
@@ -7,7 +22,6 @@ Batch/Directory (interactive) mode:
 - Remember by "name", not index, as they can change on every search
 - Auto-suggest the most similar as default choice, first comparing with video,
     then with previous choice
-
 
 Properly integrate and/or document /unrar/install.py:
 - setup.py might trigger the build, consider as package data and move to package?

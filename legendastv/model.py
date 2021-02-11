@@ -188,7 +188,7 @@ class VideoFile:
 
     @property
     def dirname(self):
-        return os.path.basename(os.path.dirname(self.path))
+        return os.path.basename(os.path.dirname(self.path) or '.')
 
     @property
     def release(self):

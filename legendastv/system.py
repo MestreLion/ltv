@@ -1,5 +1,5 @@
 # This file is part of LegendasTV, see <https://github.com/MestreLion/legendastv>
-# Copyright (C) 2020 Rodrigo Silva (MestreLion) <linux@rodrigosilva.com>
+# Copyright (C) 2021 Rodrigo Silva (MestreLion) <linux@rodrigosilva.com>
 # License: GPLv3 or later, at your choice. See <http://www.gnu.org/licenses/gpl>
 
 """
@@ -128,5 +128,5 @@ def save_log_path(apptitle="", vendor=None):
     """
     if   platform == LINUX:   suffix = 'log'
     elif platform == WINDOWS: suffix = 'Logs'
-    else:                         suffix = ''
+    else:                     suffix = ''
     return _save_path(log_home, apptitle, vendor, mode=0o700, suffix=suffix)
