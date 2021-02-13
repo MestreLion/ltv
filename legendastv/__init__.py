@@ -22,8 +22,6 @@ Mostly setup for usage as a library, such as exporting main names from modules
 and adding NullHandler to package logger
 """
 
-import logging as _logging
-
 from .__about__ import (
     __title__,
     __project__,
@@ -40,6 +38,12 @@ from .filetools import mimetype, extract_archive, copy_srt, extension, is_video,
 from .model     import Category, SubType, Title, Movie, Season, Cartoon, Subtitle, VideoFile
 from .util      import LegendasTVError, guess_info
 
-
 # https://docs.python.org/3/howto/logging.html#configuring-logging-for-a-library
-_logging.getLogger(__name__).addHandler(_logging.NullHandler())
+import logging
+logging.getLogger(__name__).addHandler(logging.NullHandler())
+del logging
+
+# Initialize Notifications, hooking to logging subsystem
+from . import notify
+notify.init(__project__)
+del notify

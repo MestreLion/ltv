@@ -74,6 +74,9 @@ install_requires = [
 extras_require   = {
     'keyring': ['keyring'],
     'rarfile': ['rarfile'],
+    'notifications': [
+        "dbus; sys_platform=='linux'"
+    ]
 }
 readme           = "README.md"
 project_urls     = {"Bug Tracker": __url__ + "/issues", "Source Code": __url__}
