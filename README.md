@@ -135,7 +135,8 @@ Contributing
 
 Patches are welcome! Fork, hack, request pull!
 
-If you find a bug or have any enhancement request, please open a [new issue](https://github.com/MestreLion/git-tools/issues/new)
+If you find a bug or have any enhancement request, please open a
+[new issue](https://github.com/MestreLion/legendastv/issues/new)
 
 
 Author
