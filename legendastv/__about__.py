@@ -69,6 +69,7 @@ install_requires = [
     'argh',
     'guessit',
     'requests',
+    'srtcleaner',
     'unrar',
 ]
 extras_require   = {

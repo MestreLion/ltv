@@ -9,6 +9,8 @@
 import logging
 import os
 
+import srtcleaner
+
 from . import __about__ as a
 from . import filetools as ft
 from . import model
@@ -110,5 +112,7 @@ def interactive(
     srt = choose(ft.extract_archive(archive, extlist='srt'), video, 'SRT',
                  video.match_srt, fdisplay=os.path.basename)
 
-    ft.copy_srt(srt, video.path)
+    srt = ft.copy_srt(srt, video.path)
+    srtcleaner.srtcleaner([srt], in_place=True, backup=False, output_encoding='utf-8')
+
     log.info("Done!")
