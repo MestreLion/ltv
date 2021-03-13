@@ -89,7 +89,7 @@ class Title:
     def from_category(cls, category:Category, data:dict):
         """Return a Title subclass instance based on category"""
         # One-time subclass mapping population
-        # Performed here to allow client extensions by sublassing
+        # Performed here to allow client extensions by subclassing
         if not cls._subclass_mapping:
             cls._subclass_mapping.update({s.category: s for s in cls._subclasses()})
         return cls._subclass_mapping[category](**data)

@@ -22,6 +22,7 @@ Mostly setup for usage as a library, such as exporting main names from modules
 and adding NullHandler to package logger
 """
 
+# Public API
 from .__about__ import (
     __title__,
     __project__,
@@ -44,6 +45,6 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 del logging
 
 # Initialize Notifications, hooking to logging subsystem
-from . import notify
-notify.init(__project__)
-del notify
+from . import __about__, notify, util
+notify.init(__project__, icon=util.get_resource_path(__about__.__icon__))
+del __about__, notify, util

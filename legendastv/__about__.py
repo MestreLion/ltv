@@ -79,6 +79,8 @@ extras_require   = {
         "dbus; sys_platform=='linux'"
     ]
 }
+extras_require['all'] = list(set([_v for _d in extras_require.values() for _v in _d]))
+
 readme           = "README.md"
 project_urls     = {"Bug Tracker": __url__ + "/issues", "Source Code": __url__}
 package_data     = {'': ['*.md', 'LICENSE*']}
@@ -98,3 +100,5 @@ __status__ = "Prototype"
 # Derived data
 __version_info__ = tuple(map(int, __version__.split('-')[0].split('+')[0].split('.')[:3]))
 if len(__version_info__) < 3: __version_info__ = (__version_info__ + 3*(0,))[:3]
+
+__icon__ = f'{__title__}.png'

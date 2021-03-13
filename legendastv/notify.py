@@ -44,7 +44,7 @@ import logging
 import pathlib
 import os
 
-#TODO: use dbus-next or pydbus!
+# TODO: use dbus-next or pydbus!
 try:
     import dbus
 except ImportError:
@@ -71,7 +71,7 @@ def init(app_name:str=None, icon:str=None, enabled:bool=True,
     """
     global _notifier
     if hook_to_logging:
-        _hook_to_logging("notify", loglevel, None, notify, 'title', 'icon')
+        _hook_to_logging("notify", loglevel, "", notify, 'title', 'icon')
     _notifier = Notify(app_name=app_name, icon=icon, enabled=enabled)
 
 
@@ -109,7 +109,7 @@ class Notify:
     _DBUS_NAME = 'org.freedesktop.Notifications'
     _DBUS_PATH = '/org/freedesktop/Notifications'
     _ICON_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                              '..', f"{__package__}.png")
+                              'data', f"{__package__}.png")
     _interface = None
 
     def __init__(self, app_name:str=None, icon:str=None, enabled:bool=True):
@@ -117,7 +117,7 @@ class Notify:
 
         <app_name> is required by the Freedesktop Standard, defaults to package name.
         <icon> sets the initial icon used by notifications. If blank, no icon is set.
-            If None, defaults to `package name`.png in the parent directory of this
+            If None, defaults to 'data/<package>.png' in the directory of this
             module file, if such file exists. A lame default, we all agree.
         <enabled> acts as a master switch to enable or disable sending notifications.
         """
@@ -149,12 +149,12 @@ class Notify:
         if icon is not None:
             self.icon = icon
 
-        def _check_dict(args):
+        def _check_dict(_args):
             # Check if a non-empty dict is the sole argument, like logging does
-            if (args and len(args) == 1 and args[0] and
-                    isinstance(args[0], collections.Mapping)):
-                return args[0]
-            return args
+            if (_args and len(_args) == 1 and _args[0] and
+                    isinstance(_args[0], collections.Mapping)):
+                return _args[0]
+            return _args
 
         # Set the DBus Notify arguments
         args = dict(

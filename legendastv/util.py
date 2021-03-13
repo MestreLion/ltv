@@ -8,6 +8,8 @@
 
 import difflib
 import logging
+import os
+import pkgutil
 import typing as t
 
 import guessit
@@ -42,6 +44,7 @@ def strip(text:str):
     """Return stripped <text> if it is not None"""
     if text is not None:
         return text.strip()
+
 
 def filtered(d, *keys, whitelist=True, exclude_nones=True):
     """Filter a dict, returning a copy with only (or all but) the selected keys"""
@@ -95,3 +98,11 @@ def match_filter(objs, **attrs):
                 return False
         return True
     return filter(match, objs)
+
+
+def get_resource_data(resource):
+    return pkgutil.get_data(__package__, os.path.join('data', resource))
+
+
+def get_resource_path(resource):
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', resource)

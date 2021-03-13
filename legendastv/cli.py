@@ -135,7 +135,7 @@ def parse_args(argv:list=None) -> t.Tuple[argparse.Namespace, argh.ArghParser]:
         download_subtitle,
 
         # Modes
-        interactive.interactive
+        interactive.interactive,
     ))
 
     args = parser.parse_args(argv)
