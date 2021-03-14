@@ -6,13 +6,12 @@
     Legendas.TV website API
 """
 
+import datetime
 import logging
 import os
 import re
 import typing as t
 import urllib.parse
-
-from   datetime import datetime
 
 import requests
 
@@ -145,7 +144,8 @@ class HttpEngine:
         """Join the Base URL with an URL path to get an absolute, full URL"""
         return urllib.parse.urljoin(self.base_url, url_path)
 
-    def quote_partial(self, part:str) -> str:
+    @staticmethod
+    def quote_partial(part:str) -> str:
         """URL-Encode a partial URL, including '/', using urllib.parse.quote_plus()"""
         return urllib.parse.quote_plus(part).replace(":", " ").strip()
 
@@ -154,8 +154,8 @@ class LegendasTV(HttpEngine):
     """Main class for accessing Legendas.TV website"""
     # TODO: Composite HttpEngine instead of subclassing it
     url = "http://legendas.tv/"
-    thumbs_url = "http://i.legendas.tv/poster/214x317/"
-    download_url = url + 'downloadarquivo/'
+    _download_url_fmt = url + 'downloadarquivo/{}'
+    _thumb_url_fmt    = "http://i.legendas.tv/poster/214x317/{}"
 
     languages = dict(
         pb = dict(id= 1, flag="brazil",  name="Português-BR"),
@@ -176,7 +176,7 @@ class LegendasTV(HttpEngine):
         it = dict(id=16, flag="it",      name="Italiano"),
         pl = dict(id=17, flag="poland",  name="Polonês"),
     )
-    langflags = {v['flag']: k for k, v in languages.items()}
+    _langflags = {v['flag']: k for k, v in languages.items()}
 
     _title_mapping = dict(
         id       = 'id_filme',
@@ -193,7 +193,7 @@ class LegendasTV(HttpEngine):
         # "int_genero":         "1021",
         # "dsc_sinopse":        "...",
         # "dsc_url_imdb":       "http://www.imdb.com/title/tt0082186/",
-        # Not derived from 'id_imdb', not standartized. Real examples:
+        # Not derived from 'id_imdb', not standardized. Real examples:
         # [36413] "http://www.imdb.com/title/tt2338096/" - Most common
         # [41202] "http://www.imdb.com/title/tt2314952"  - No trailing slash
         # [81698] "http://uk.imdb.com/title/tt0081698"   - Alt subdomain
@@ -241,7 +241,8 @@ class LegendasTV(HttpEngine):
             if errno and errno not in (513,):  # Service Unavailable
                 raise
             log.error(e)
-            raise u.LegendasTVError(f"Legendas.TV website is down! [{e}]")
+            raise u.LegendasTVError("Legendas.TV website is down! [%s]",
+                                    e, errno=errno)
 
         # Check successful login: logout link available
         self.auth = 'href="/users/logout"' in content
@@ -273,16 +274,22 @@ class LegendasTV(HttpEngine):
         try:
             kwargs = {k: data['_source'].get(v) for k, v in self._title_mapping.items()}
         except KeyError as e:
-            raise u.LegendasTVError("Missing expected key %r: %s", e.message, data)
+            raise u.LegendasTVError("Missing expected key %s: %s", e, data)
 
-        # Type casting and data formatting
+        # Cast integer fields
         for k in ('id', 'year', 'season', 'imdb_id', 'user_id'):
             kwargs[k] = u.toint(kwargs[k])
+
+        # Cast Category to Enum
         try:
             category = model.Category(kwargs.pop('category'))
         except ValueError as e:
             # 'X' is not a valid Category
-            raise u.LegendasTVError("%s: %s", e.args[0], data)
+            raise u.LegendasTVError("%s: %s", e, data)
+
+        # Add full URLs
+        if kwargs.get('thumb'):
+            kwargs['thumb'] = self._thumb_url_fmt.format(kwargs['thumb'])
 
         # Integrity checks
         if category == model.Category.MOVIE and kwargs['season']:
@@ -339,18 +346,18 @@ class LegendasTV(HttpEngine):
                     _ltv        = self,
                     _raw        = data.group(0),
                     hash        = s['hash'],
-                    url         = self.download_url + s['hash'],
+                    url         = self._download_url_fmt.format(s['hash']),
                     title_id    = title_id,
                     title       = s['title'],
                     downloads   = u.toint(s['downloads']),
                     rating      = u.toint(s['rating'], None),
-                    date        = datetime.strptime(s['date'].strip(), '%d/%m/%Y - %H:%M'),
                     username    = s['username'],
                     release     = s['release'],
                     subtype     = model.SubType(s['subtype'][:1]),
-                    language    = self.langflags.get(s['language'], None)
+                    language    = self._langflags.get(s['language'], None),
+                    date        = datetime.datetime.strptime(s['date'].strip(),
+                                                             '%d/%m/%Y - %H:%M'),
                 )
-                #if c.OPTIONS['cache']: self.cache(sub.flag)
                 log.debug(repr(sub))
                 subs.append(sub)
 
@@ -377,7 +384,7 @@ class LegendasTV(HttpEngine):
         if not self.auth:
             raise u.LegendasTVError("Subtitle download requires authentication.")
 
-        url = '/downloadarquivo/' + filehash
+        url = self._download_url_fmt.format(filehash)
 
         try:
             path = self.download(url, savedir, basename, overwrite=overwrite)
