@@ -99,8 +99,23 @@ class HttpEngine:
         return response
 
     def download(self, url:str, savedir:str, filename="", overwrite:bool=True) -> str:
-        # Handle dir
+
+        def fullpath(f):
+            return "" if not f else os.path.join(savedir, os.path.basename(f))
+
+        def is_cached(f):
+            if f and not overwrite and os.path.isfile(f):
+                log.debug("Using cached file: %s", f)
+                return True
+
         savedir = os.path.expanduser(savedir)
+        filename = fullpath(filename)
+
+        # Shortcut: if path exists and caching is enabled, don't request server
+        if is_cached(filename):
+            return filename
+
+        # Handle dir
         os.makedirs(savedir, exist_ok=True)
 
         try:
@@ -109,19 +124,16 @@ class HttpEngine:
 
                 # If save name is not set, use the downloaded file name
                 if not filename:
-                    filename = response.url.rstrip("/")
-                # Get the full path
-                filename = os.path.join(savedir, os.path.basename(filename))
+                    filename = fullpath(response.url.rstrip("/"))
 
-                if not overwrite and os.path.isfile(filename):
-                    log.debug("Using cached file: %s", filename)
+                if is_cached(filename):
                     return filename
 
                 log.debug("Downloading to: %s", filename)
-                with open(filename, 'wb') as f:
+                with open(filename, 'wb') as fd:
                     for chunk in response.iter_content(chunk_size=None):
                         if chunk:
-                            f.write(chunk)
+                            fd.write(chunk)
 
         except requests.HTTPError as e:
             raise HttpEngineError(e, errno=e.response.status_code)
