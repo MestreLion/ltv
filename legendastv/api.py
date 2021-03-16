@@ -54,7 +54,7 @@ class HttpEngine:
     _re_errno = re.compile(r'\[[Ee]rrno (?P<errno>[0-9-]+)] (?P<msg>.*)')
 
     def __init__(self, base_url:str="", base_name:str="", *,
-                 default_scheme:str="http", timeout:int=30):
+                 default_scheme:str="http", timeout:int=5):
         """Set the normalized base_url and initialize a session object.
 
         A session object will transparently handle cookies in all subsequent requests.
@@ -85,7 +85,9 @@ class HttpEngine:
 
         <url> can be absolute or relative to self.base_url
 
-        <timeout> in seconds. Zero to use the default timeout, negative for no timeout.
+        <timeout> in seconds. Falsy to use the default timeout, negative for no timeout.
+        Note: If both client and server have IPv6, effective timeout time can be doubled,
+        See https://github.com/psf/requests/issues/5773
         """
         url = self.absurl(url)
         headers = {
