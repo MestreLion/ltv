@@ -6,10 +6,12 @@
     Legendas.TV website API
 """
 
+import errno
 import datetime
 import logging
 import os
 import re
+import socket
 import typing as t
 import urllib.parse
 
@@ -48,6 +50,8 @@ class HttpEngine:
     Allow LegendasTV class below to be fully agnostic.
     Currently uses python-requests as backend, and wraps a few urllib.parse utilities
     """
+
+    _re_errno = re.compile(r'\[[Ee]rrno (?P<errno>[0-9-]+)] (?P<msg>.*)')
 
     def __init__(self, base_url:str="", base_name:str="", *,
                  default_scheme:str="http", timeout:int=30):
@@ -157,17 +161,47 @@ class HttpEngine:
 
     def _handle_requests_exception(self, e:requests.RequestException, url:str) -> IOError:
         """Set message and type for Timeout, ConnectionError and some HTTP status"""
-        def err_args(e_): return '%s is down! [%s]', self.base_name or self.absurl(url), e_
-        def delim(e_, d): return str(e_).split(d[0])[-1].split(d[1])[0].strip()
+        def err_args(e_, n_=False):
+            return (
+                '%s is down! [%s]',
+                "Network" if n_ else (self.base_name or self.absurl(url)),
+                e_
+            )
+
+        def delim(e_, d_):
+            return str(e_).split(d_[0])[-1].split(d_[1])[0].strip()
+
         if isinstance(e, requests.HTTPError):
             args = err_args(e) if e.response.status_code in (
-                    513,  # Service Unavailable
+                503,  # Service Unavailable
             ) else (e,)
             return HttpEngineHttpError(*args, errno=e.response.status_code)
-        if isinstance(e, requests.Timeout):
-            return HttpEngineTimeout(*err_args(delim(e, "()")))
-        if isinstance(e, requests.ConnectionError):
-            return HttpEngineConnectionError(*err_args(delim(e, ":'")))
+
+        elif isinstance(e, requests.Timeout):
+            msg = delim(e, "()")
+            msg = ' '.join((str(errno.ETIMEDOUT), msg.split('=')[0].capitalize()))
+            return HttpEngineTimeout(*err_args(msg), errno=errno.ETIMEDOUT)
+
+        elif isinstance(e, requests.ConnectionError):
+            # Parse original error message and errno code
+            eno, msg = 0, delim(e, ":'")
+            m = re.match(self._re_errno, msg)
+            if m:
+                msg = m.group('msg')
+                if m.group('errno'):
+                    eno = int(m.group('errno'))
+                    msg = ' '.join((str(eno), msg))
+            # Tell apart a Server issue from a Client one (or at least try to)
+            net = eno in (
+                socket.EAI_NONAME,   # -2  Name or service not known (DNS error)
+                errno.ENETUNREACH,   # 101 Network is unreachable
+            )
+            # Some connection errors do not mean Network/Website is down
+            args = err_args(msg, net) if eno not in (
+                errno.ECONNREFUSED,  # 111 Connection refused
+            ) else (msg,)
+            return HttpEngineConnectionError(*args, errno=eno)
+
         return e
 
     def get(self, url:str, *a, **kw) -> str:
@@ -255,7 +289,7 @@ class LegendasTV(HttpEngine):
         r'downloads, nota (?P<rating>[^,]*),[^>]*>(?P<username>[^<]*)</a> em '
         r'(?P<date>[^<]*)<.*?/idioma/\w+_(?P<language>\w+)[^>]+></div>'
     )
-    _re_nextpage = '<a href="([^"]*)" class="load_more">'
+    _re_nextpage = re.compile(r'<a href="([^"]*)" class="load_more">')
 
     def __init__(self, username:str="", password:str="", **kwargs):
         super().__init__(kwargs.pop('base_url', "") or self.url,

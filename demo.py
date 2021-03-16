@@ -76,13 +76,12 @@ def errors():
     http = legendastv.api.HttpEngine(base_name='Website')
 
     for url in (
-        'http://httpbin.org/status/513',  # HTTP Service Unavailable
+        'http://httpbin.org/status/503',  # HTTP Service Unavailable
         'http://localhost:123',           # [Errno 111] Connection refused
         'http://a.a',                     # [Errno -2] Name or service not known
-        # 'http://[::1]',                 # [Errno 101] Network is unreachable
+        'http://[::2]',                   # [Errno 101] Network is unreachable
         'http://httpbin.org/delay/3',     # Read Timeout
         'http://google.com:81',           # Connect Timeout
-
     ):
         try:
             http.get(url, timeout=1)
