@@ -27,6 +27,18 @@ class HttpEngineError(u.LegendasTVError, IOError):
     """Base class for HTTP and connection related exceptions"""
 
 
+class HttpEngineHttpError(HttpEngineError):
+    """An HTTP error occurred."""
+
+
+class HttpEngineTimeout(HttpEngineError, TimeoutError):
+    """A request timed out when either connecting or reading data."""
+
+
+class HttpEngineConnectionError(HttpEngineError, ConnectionError):
+    """A connection error occurred."""
+
+
 class HttpEngine:
     """Base class to handle HTTP requests.
 
@@ -37,19 +49,24 @@ class HttpEngine:
     Currently uses python-requests as backend, and wraps a few urllib.parse utilities
     """
 
-    def __init__(self, base_url:str="", *, default_scheme:str="http", timeout:int=30):
-        """Set the normalized base_name and initialize a session object.
+    def __init__(self, base_url:str="", base_name:str="", *,
+                 default_scheme:str="http", timeout:int=30):
+        """Set the normalized base_url and initialize a session object.
 
         A session object will transparently handle cookies in all subsequent requests.
         """
         self._session = requests.Session()
+        self.base_name = base_name
         self.timeout = timeout
+        self.base_url = base_url
 
         # Normalize base_url, prepending default scheme if missing
         scheme, netloc, path, q, f  = urllib.parse.urlsplit(base_url, default_scheme)
         if not netloc:
+            # For base_url = 'a.com' or 'a.com/b', urlsplit() puts all in path
             netloc, _x, path = path.partition('/')
-        self.base_url = urllib.parse.urlunsplit((scheme, netloc, path, q, f))
+        if netloc:
+            self.base_url = urllib.parse.urlunsplit((scheme, netloc, path, '', ''))
 
     def _get(self,
         url:      str,
@@ -89,12 +106,9 @@ class HttpEngine:
             response = self._session.request(method, url, headers=headers,
                                              stream=stream, **kwargs)
             response.raise_for_status()
-        except requests.HTTPError as e:
-            raise HttpEngineError(e, errno=e.response.status_code)
-        except requests.Timeout as e:
-            raise TimeoutError(e)  # stdlib
-        except requests.ConnectionError as e:
-            raise ConnectionError(e)  # stdlib
+        except requests.RequestException as e:
+            # Unify message for Timeout, ConnectionError and some HTTP status
+            raise self._handle_requests_exception(e, url)
 
         return response
 
@@ -135,14 +149,26 @@ class HttpEngine:
                         if chunk:
                             fd.write(chunk)
 
-        except requests.HTTPError as e:
-            raise HttpEngineError(e, errno=e.response.status_code)
-        except requests.Timeout as e:
-            raise TimeoutError(e)  # stdlib
-        except requests.ConnectionError as e:
-            raise ConnectionError(e)  # stdlib
+        # response.iter_content() may raise exceptions in addition to self._get()
+        except requests.RequestException as e:
+            raise self._handle_requests_exception(e, url)
 
         return filename
+
+    def _handle_requests_exception(self, e:requests.RequestException, url:str) -> IOError:
+        """Set message and type for Timeout, ConnectionError and some HTTP status"""
+        def err_args(e_): return '%s is down! [%s]', self.base_name or self.absurl(url), e_
+        def delim(e_, d): return str(e_).split(d[0])[-1].split(d[1])[0].strip()
+        if isinstance(e, requests.HTTPError):
+            args = err_args(e) if e.response.status_code in (
+                    513,  # Service Unavailable
+            ) else (e,)
+            return HttpEngineHttpError(*args, errno=e.response.status_code)
+        if isinstance(e, requests.Timeout):
+            return HttpEngineTimeout(*err_args(delim(e, "()")))
+        if isinstance(e, requests.ConnectionError):
+            return HttpEngineConnectionError(*err_args(delim(e, ":'")))
+        return e
 
     def get(self, url:str, *a, **kw) -> str:
         """Return content from an URL"""
@@ -166,6 +192,7 @@ class LegendasTV(HttpEngine):
     """Main class for accessing Legendas.TV website"""
     # TODO: Composite HttpEngine instead of subclassing it
     url = "http://legendas.tv/"
+    name = "Legendas.TV"
     _download_url_fmt = url + 'downloadarquivo/{}'
     _thumb_url_fmt    = "http://i.legendas.tv/poster/214x317/{}"
 
@@ -231,7 +258,9 @@ class LegendasTV(HttpEngine):
     _re_nextpage = '<a href="([^"]*)" class="load_more">'
 
     def __init__(self, username:str="", password:str="", **kwargs):
-        super().__init__(kwargs.pop('base_url', "") or self.url, **kwargs)
+        super().__init__(kwargs.pop('base_url', "") or self.url,
+                         '{} website'.format(self.name),
+                         **kwargs)
         self.auth = self.login(username, password)
 
     def login(self, username:str, password:str) -> bool:
@@ -241,20 +270,12 @@ class LegendasTV(HttpEngine):
         url = self.absurl('/login')
         log.info("Logging in %s as %s", url, username)
 
-        try:
-            content = self.get(url, {
-                '_method':              'POST',
-                'data[User][username]': username,
-                'data[User][password]': password,
-                'data[lembrar]':        'on',
-            })
-        except (HttpEngineError, ConnectionRefusedError, TimeoutError) as e:
-            errno = getattr(e, 'errno', 0)  # from HttpEngineError
-            if errno and errno not in (513,):  # Service Unavailable
-                raise
-            log.error(e)
-            raise u.LegendasTVError("Legendas.TV website is down! [%s]",
-                                    e, errno=errno)
+        content = self.get(url, {
+            '_method':              'POST',
+            'data[User][username]': username,
+            'data[User][password]': password,
+            'data[lembrar]':        'on',
+        })
 
         # Check successful login: logout link available
         self.auth = 'href="/users/logout"' in content
@@ -347,7 +368,7 @@ class LegendasTV(HttpEngine):
             page += 1
             try:
                 html = self.get(url)
-            except (HttpEngineError, ConnectionError, TimeoutError) as e:
+            except HttpEngineError as e:
                 log.error(e)
                 return subs
 
@@ -398,10 +419,4 @@ class LegendasTV(HttpEngine):
 
         url = self._download_url_fmt.format(filehash)
 
-        try:
-            path = self.download(url, savedir, basename, overwrite=overwrite)
-        except (HttpEngineError, ConnectionRefusedError, TimeoutError) as e:
-            log.error(e)
-            return
-
-        return path
+        return self.download(url, savedir, basename, overwrite=overwrite)

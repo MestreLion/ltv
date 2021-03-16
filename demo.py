@@ -44,11 +44,58 @@ def extract():
         pprint(ft.extract_archive(archive, 'data/archives', extlist='srt'))
 
 
+def wxgui():
+    import wx
+
+    class Window(wx.Frame):
+        def __init__(self, title):
+            super().__init__(None, title=title)
+            parent = self  # wx.Panel(self)
+            parent.SetBackgroundColour('red')
+
+            panel = wx.Panel(parent)
+            panel.SetBackgroundColour('blue')
+
+            grid = wx.GridBagSizer(5, 5)
+            grid.Add(wx.TextCtrl(panel, value="hi"), (0, 0), flag=wx.EXPAND)
+            grid.AddGrowableCol(0)
+            panel.SetSizer(grid)
+
+            outer = wx.BoxSizer()
+            outer.Add(panel, 1, flag=wx.GROW | wx.ALL, border=20)
+            parent.SetSizerAndFit(outer)
+
+    app = wx.App()
+    window = Window('WxWidgets Window Test')
+    window.Show()
+    app.MainLoop()
+
+
+def errors():
+    import legendastv.api
+    http = legendastv.api.HttpEngine(base_name='Website')
+
+    for url in (
+        'http://httpbin.org/status/513',  # HTTP Service Unavailable
+        'http://localhost:123',           # [Errno 111] Connection refused
+        'http://a.a',                     # [Errno -2] Name or service not known
+        # 'http://[::1]',                 # [Errno 101] Network is unreachable
+        'http://httpbin.org/delay/3',     # Read Timeout
+        'http://google.com:81',           # Connect Timeout
+
+    ):
+        try:
+            http.get(url, timeout=1)
+        except Exception as e:
+            log.error(repr(e))
+
+
 def demo():
     import legendastv.filetools as ft
     pprint(ft.extract_archive('data/dummy.rar'))
 
 try:
-    readme()
+    log = logging.getLogger(__name__)
+    errors()
 except LegendasTVError as e:
-    logging.getLogger(__name__).critical(e)
+    log.critical(e)
