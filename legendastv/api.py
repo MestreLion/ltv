@@ -231,27 +231,37 @@ class LegendasTV(HttpEngine):
     name = "Legendas.TV"
     _download_url_fmt = url + 'downloadarquivo/{}'
     _thumb_url_fmt    = "http://i.legendas.tv/poster/214x317/{}"
+    _flag_url_fmt     = "http://i.legendas.tv/idioma/{}"
 
-    languages = dict(
-        pb = dict(id= 1, flag="brazil",  name="Português-BR"),
-        en = dict(id= 2, flag="usa",     name="Inglês"),
-        es = dict(id= 3, flag="es",      name="Espanhol"),
-        fr = dict(id= 4, flag="fr",      name="Francês"),
-        de = dict(id= 5, flag="de",      name="Alemão"),
-        ja = dict(id= 6, flag="japao",   name="Japonês"),
-        da = dict(id= 7, flag="denmark", name="Dinamarquês"),
-        no = dict(id= 8, flag="norway",  name="Norueguês"),
-        sv = dict(id= 9, flag="sweden",  name="Sueco"),
-        pt = dict(id=10, flag="pt",      name="Português-PT"),
-        ar = dict(id=11, flag="arabian", name="Árabe"),
-        cs = dict(id=12, flag="czech",   name="Checo"),
-        zh = dict(id=13, flag="china",   name="Chinês"),
-        ko = dict(id=14, flag="korean",  name="Coreano"),
-        bg = dict(id=15, flag="be",      name="Búlgaro"),
-        it = dict(id=16, flag="it",      name="Italiano"),
-        pl = dict(id=17, flag="poland",  name="Polonês"),
+    # Intentionally ordered as the website language select box
+    _languages = dict(
+        pb = dict(id= 1, flag="icon_brazil.png",  name="Português-BR"),
+        en = dict(id= 2, flag="icon_usa.png",     name="Inglês"),
+        es = dict(id= 3, flag="flag_es.gif",      name="Espanhol"),
+        pt = dict(id=10, flag="flag_pt.gif",      name="Português-PT"),
+        de = dict(id= 5, flag="flag_de.gif",      name="Alemão"),
+        ar = dict(id=11, flag="flag_arabian.gif", name="Árabe"),
+        bg = dict(id=15, flag="flag_be.gif",      name="Búlgaro"),
+        cs = dict(id=12, flag="flag_czech.gif",   name="Checo"),
+        zh = dict(id=13, flag="flag_china.gif",   name="Chinês"),
+        ko = dict(id=14, flag="flag_korean.gif",  name="Coreano"),
+        da = dict(id= 7, flag="flag_denmark.gif", name="Dinamarquês"),
+        fr = dict(id= 4, flag="flag_fr.gif",      name="Francês"),
+        it = dict(id=16, flag="flag_it.gif",      name="Italiano"),
+        ja = dict(id= 6, flag="flag_japao.gif",   name="Japonês"),
+        no = dict(id= 8, flag="flag_norway.gif",  name="Norueguês"),
+        pl = dict(id=17, flag="flag_poland.gif",  name="Polonês"),
+        sv = dict(id= 9, flag="flag_sweden.gif",  name="Sueco"),
     )
-    _langflags = {v['flag']: k for k, v in languages.items()}
+    # Augment languages with derived fields 'code', 'url' and 'path'
+    for _ in _languages:
+        _languages[_].update(dict(
+            code = _,
+            path = "",
+            url  = _flag_url_fmt.format(_languages[_]['flag']),
+    ))
+
+    _langflags = {v['flag']: k for k, v in _languages.items()}
 
     _title_mapping = dict(
         id       = 'id_filme',
@@ -289,7 +299,7 @@ class LegendasTV(HttpEngine):
         r'<div class="(?P<subtype>[^" ]*)">.+?/download/(?P<hash>[a-f0-9]+)/'
         r'(?P<title>[^/]*?)/[^>]*>(?P<release>[^<]*)<.*?(?P<downloads>\d*) '
         r'downloads, nota (?P<rating>[^,]*),[^>]*>(?P<username>[^<]*)</a> em '
-        r'(?P<date>[^<]*)<.*?/idioma/\w+_(?P<language>\w+)[^>]+></div>'
+        r'(?P<date>[^<]*)<.*?/idioma/(?P<language>[^\'"]+)[^>]+></div>'
     )
     _re_nextpage = re.compile(r'<a href="([^"]*)" class="load_more">')
 
@@ -298,6 +308,29 @@ class LegendasTV(HttpEngine):
                          '{} website'.format(self.name),
                          **kwargs)
         self.auth = self.login(username, password)
+        self.languages = self._languages.copy()
+
+    def get_languages(self, update=False, cachedir:str="") -> dict:
+        if update:
+            # TODO: Fetch languages from website
+            self.languages.update({})
+
+        if not cachedir:
+            return self.languages
+
+        # For atomicity, loop and change data on a copy, then update original
+        langs = self.languages.copy()
+
+        for d in langs.values():
+            try:
+                d['path'] = self.download(d['url'], cachedir, d['flag'], overwrite=False)
+            except HttpEngineError as e:
+                log.warning("Could not download flag for [%s] %s: %s",
+                            d['code'], d['name'], e)
+
+        # Update in a single operation and return it
+        self.languages = langs
+        return self.languages
 
     def login(self, username:str, password:str) -> bool:
         if not (username and password):
