@@ -231,37 +231,37 @@ class LegendasTV(HttpEngine):
     name = "Legendas.TV"
     _download_url_fmt = url + 'downloadarquivo/{}'
     _thumb_url_fmt    = "http://i.legendas.tv/poster/214x317/{}"
-    _flag_url_fmt     = "http://i.legendas.tv/idioma/{}"
+    _langicon_url_fmt = "http://i.legendas.tv/idioma/{}"
 
     # Intentionally ordered as the website language select box
     _languages = dict(
-        pb = dict(id= 1, flag="icon_brazil.png",  name="Português-BR"),
-        en = dict(id= 2, flag="icon_usa.png",     name="Inglês"),
-        es = dict(id= 3, flag="flag_es.gif",      name="Espanhol"),
-        pt = dict(id=10, flag="flag_pt.gif",      name="Português-PT"),
-        de = dict(id= 5, flag="flag_de.gif",      name="Alemão"),
-        ar = dict(id=11, flag="flag_arabian.gif", name="Árabe"),
-        bg = dict(id=15, flag="flag_be.gif",      name="Búlgaro"),
-        cs = dict(id=12, flag="flag_czech.gif",   name="Checo"),
-        zh = dict(id=13, flag="flag_china.gif",   name="Chinês"),
-        ko = dict(id=14, flag="flag_korean.gif",  name="Coreano"),
-        da = dict(id= 7, flag="flag_denmark.gif", name="Dinamarquês"),
-        fr = dict(id= 4, flag="flag_fr.gif",      name="Francês"),
-        it = dict(id=16, flag="flag_it.gif",      name="Italiano"),
-        ja = dict(id= 6, flag="flag_japao.gif",   name="Japonês"),
-        no = dict(id= 8, flag="flag_norway.gif",  name="Norueguês"),
-        pl = dict(id=17, flag="flag_poland.gif",  name="Polonês"),
-        sv = dict(id= 9, flag="flag_sweden.gif",  name="Sueco"),
+        pb = dict(id= 1, icon="icon_brazil.png",  name="Português-BR"),
+        en = dict(id= 2, icon="icon_usa.png",     name="Inglês"),
+        es = dict(id= 3, icon="flag_es.gif",      name="Espanhol"),
+        pt = dict(id=10, icon="flag_pt.gif",      name="Português-PT"),
+        de = dict(id= 5, icon="flag_de.gif",      name="Alemão"),
+        ar = dict(id=11, icon="flag_arabian.gif", name="Árabe"),
+        bg = dict(id=15, icon="flag_be.gif",      name="Búlgaro"),
+        cs = dict(id=12, icon="flag_czech.gif",   name="Checo"),
+        zh = dict(id=13, icon="flag_china.gif",   name="Chinês"),
+        ko = dict(id=14, icon="flag_korean.gif",  name="Coreano"),
+        da = dict(id= 7, icon="flag_denmark.gif", name="Dinamarquês"),
+        fr = dict(id= 4, icon="flag_fr.gif",      name="Francês"),
+        it = dict(id=16, icon="flag_it.gif",      name="Italiano"),
+        ja = dict(id= 6, icon="flag_japao.gif",   name="Japonês"),
+        no = dict(id= 8, icon="flag_norway.gif",  name="Norueguês"),
+        pl = dict(id=17, icon="flag_poland.gif",  name="Polonês"),
+        sv = dict(id= 9, icon="flag_sweden.gif",  name="Sueco"),
     )
     # Augment languages with derived fields 'code', 'url' and 'path'
     for _ in _languages:
         _languages[_].update(dict(
             code = _,
             path = "",
-            url  = _flag_url_fmt.format(_languages[_]['flag']),
-    ))
+            url  = _langicon_url_fmt.format(_languages[_]['icon']),
+        ))
 
-    _langflags = {v['flag']: k for k, v in _languages.items()}
+    _langicons = {v['icon']: k for k, v in _languages.items()}
 
     _title_mapping = dict(
         id       = 'id_filme',
@@ -299,7 +299,7 @@ class LegendasTV(HttpEngine):
         r'<div class="(?P<subtype>[^" ]*)">.+?/download/(?P<hash>[a-f0-9]+)/'
         r'(?P<title>[^/]*?)/[^>]*>(?P<release>[^<]*)<.*?(?P<downloads>\d*) '
         r'downloads, nota (?P<rating>[^,]*),[^>]*>(?P<username>[^<]*)</a> em '
-        r'(?P<date>[^<]*)<.*?/idioma/(?P<language>[^\'"]+)[^>]+></div>'
+        r'(?P<date>[^<]*)<.*?/idioma/(?P<langicon>[^\'"]+)[^>]+></div>'
     )
     _re_nextpage = re.compile(r'<a href="([^"]*)" class="load_more">')
 
@@ -323,9 +323,9 @@ class LegendasTV(HttpEngine):
 
         for d in langs.values():
             try:
-                d['path'] = self.download(d['url'], cachedir, d['flag'], overwrite=False)
+                d['path'] = self.download(d['url'], cachedir, d['icon'], overwrite=False)
             except HttpEngineError as e:
-                log.warning("Could not download flag for [%s] %s: %s",
+                log.warning("Could not download icon for [%s] %s: %s",
                             d['code'], d['name'], e)
 
         # Update in a single operation and return it
@@ -456,7 +456,7 @@ class LegendasTV(HttpEngine):
                     username    = s['username'],
                     release     = s['release'],
                     subtype     = model.SubType(s['subtype'][:1]),
-                    language    = self._langflags.get(s['language'], None),
+                    language    = self._langicons.get(s['langicon'], None),
                     date        = datetime.datetime.strptime(s['date'].strip(),
                                                              '%d/%m/%Y - %H:%M'),
                 )
