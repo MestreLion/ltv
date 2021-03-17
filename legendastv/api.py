@@ -6,6 +6,7 @@
     Legendas.TV website API
 """
 
+import concurrent.futures
 import errno
 import datetime
 import logging
@@ -51,6 +52,11 @@ class HttpEngine:
     Currently uses python-requests as backend, and wraps a few urllib.parse utilities
     """
 
+    # Simultaneous connections to a single host. Defaults:
+    # requests.Session() = 10 (from requests.adapters.DEFAULT_POOLSIZE)
+    # concurrent.futures: 5 * os.cpu_count()
+    MAX_CONNS = 20  # Enough for all language icons
+
     _re_errno = re.compile(r'\[[Ee]rrno (?P<errno>[0-9-]+)] (?P<msg>.*)')
 
     def __init__(self, base_url:str="", base_name:str="", *,
@@ -71,6 +77,11 @@ class HttpEngine:
             netloc, _x, path = path.partition('/')
         if netloc:
             self.base_url = urllib.parse.urlunsplit((scheme, netloc, path, '', ''))
+
+        # Set ConnectionPool maxsize
+        for prefix in list(self._session.adapters):
+            adapter = requests.adapters.HTTPAdapter(pool_maxsize=self.MAX_CONNS)
+            self._session.mount(prefix, adapter)
 
     def _get(self,
         url:      str,
@@ -321,12 +332,18 @@ class LegendasTV(HttpEngine):
         # For atomicity, loop and change data on a copy, then update original
         langs = self.languages.copy()
 
-        for d in langs.values():
+        def fetch(d):
             try:
-                d['path'] = self.download(d['url'], cachedir, d['icon'], overwrite=False)
+                p = self.download(d['url'], cachedir, d['icon'], overwrite=False)
             except HttpEngineError as e:
+                p = ""
                 log.warning("Could not download icon for [%s] %s: %s",
                             d['code'], d['name'], e)
+            return d['code'], p
+
+        with concurrent.futures.ThreadPoolExecutor(self.MAX_CONNS) as executor:
+            for lang, path in executor.map(fetch, self.languages.values()):
+                langs[lang]['path'] = path
 
         # Update in a single operation and return it
         self.languages = langs
