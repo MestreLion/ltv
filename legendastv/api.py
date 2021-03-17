@@ -182,7 +182,8 @@ class HttpEngine:
             )
 
         def delim(e_, d_):
-            return str(e_).split(d_[0])[-1].split(d_[1])[0].strip()
+            m_ = str(e_).split(d_[0])[-1].split(d_[1])[0].strip()
+            return m_ if len(m_) >= 10 else str(e_)
 
         if isinstance(e, requests.HTTPError):
             args = err_args(e) if e.response.status_code in (
