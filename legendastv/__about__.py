@@ -73,6 +73,7 @@ install_requires = [
     'unrar',
 ]
 extras_require   = {
+    'gui':     ['wx'],
     'keyring': ['keyring'],
     'rarfile': ['rarfile'],
     'notifications': [

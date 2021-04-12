@@ -20,6 +20,7 @@ logging.getLogger(__package__).handlers.clear()
 from . import __about__ as a
 from . import api
 from . import config
+from . import gui
 from . import interactive
 from . import filetools
 from . import system
@@ -136,6 +137,7 @@ def parse_args(argv:list=None) -> t.Tuple[argparse.Namespace, argh.ArghParser]:
 
         # Modes
         interactive.interactive,
+        gui.gui,
     ))
 
     args = parser.parse_args(argv)
