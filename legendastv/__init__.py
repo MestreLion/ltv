@@ -23,6 +23,13 @@ and adding NullHandler to package logger
 """
 
 # Public API
+__all__ = [
+    'LegendasTV',
+    'mimetype', 'extract_archive', 'copy_srt', 'extension', 'is_video', 'video_hash',
+    'Category', 'SubType', 'Title', 'Movie', 'Season', 'Cartoon', 'Subtitle', 'VideoFile',
+    'LegendasTVError', 'guess_info',
+]
+# noinspection PyUnresolvedReferences
 from .__about__ import (
     __title__,
     __project__,
