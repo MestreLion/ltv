@@ -29,7 +29,6 @@ __all__ = [
     'Category', 'SubType', 'Title', 'Movie', 'Season', 'Cartoon', 'Subtitle', 'VideoFile',
     'LegendasTVError', 'guess_info',
 ]
-# noinspection PyUnresolvedReferences
 from .__about__ import (
     __title__,
     __project__,

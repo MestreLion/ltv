@@ -77,7 +77,7 @@ extras_require   = {
     'keyring': ['keyring'],
     'rarfile': ['rarfile'],
     'notifications': [
-        "dbus; sys_platform=='linux'"
+        "dbus-python; sys_platform=='linux'"
     ]
 }
 extras_require['all'] = list(set([_v for _d in extras_require.values() for _v in _d]))

@@ -22,7 +22,7 @@ class LegendasTVError(Exception):
     """Base class for custom exceptions, with errno and %-formatting for args.
 
     All modules in this package raise this (or a subclass) for all
-    explicitely raised, business-logic, expected or handled exceptions
+    explicitly raised, business-logic, expected or handled exceptions
     """
     def __init__(self, msg: t.Any = "", *args, errno: int = 0):
         super().__init__(str(msg) % args)

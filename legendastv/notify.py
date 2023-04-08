@@ -45,6 +45,7 @@ import pathlib
 import os
 
 # TODO: use dbus-next or pydbus!
+#  ... or dasbus, or GBDus, or...
 try:
     import dbus
 except ImportError:
